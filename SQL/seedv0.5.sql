@@ -58,11 +58,17 @@ INSERT INTO prova (anolectivo, concelho, escola, data, horainicio, horafinal) VA
 -- ---------------------------------------------------------------------------
 -- Escalões
 -- ---------------------------------------------------------------------------
-INSERT INTO escalao (prova_id, designacao, sexo, anonasc_min, anonasc_max, da) VALUES
-    (1, 'Infantis Femininos', 'F', 2011, 2013, FALSE),
-    (1, 'Infantis Masculinos','M', 2011, 2013, FALSE),
-    (1, 'Juvenis Femininos',  'F', 2009, 2010, FALSE),
-    (1, 'Juvenis Masculinos', 'M', 2009, 2010, FALSE);
+INSERT INTO `escalao` (`id`, `prova_id`, `designacao`, `sexo`, `anonasc_min`, `anonasc_max`, `da`) VALUES
+(1, 1, 'Infantis A Femininos', 'F', 2016, 2018, 0),
+(2, 1, 'Infantis A Masculinos', 'M', 2016, 2018, 0),
+(3, 1, 'Infantis B Femininos', 'F', 2016, 2018, 0),
+(4, 1, 'Infantis B Masculinos', 'M', 2016, 2018, 0),
+(5, 1, 'Iniciados Femininos', 'F', 2012, 2013, 0),
+(6, 1, 'Iniciados Masculinos', 'M', 2012, 2013, 0),
+(7, 1, 'Juvenis  Femininos', 'F', 2009, 2011, 0),
+(8, 1, 'Juvenis Masculinos', 'M', 2009, 2011, 0),
+(9, 1, 'Júnior Feminino', 'F', 2005, 2008, 0),
+(10, 1, 'Júnior Masculino', 'M', 2005, 2008, 0);
 
 -- ---------------------------------------------------------------------------
 -- Inscrições (Atletas 10001–10010)

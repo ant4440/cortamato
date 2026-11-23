@@ -35,6 +35,7 @@ from View.competition_records_view import (
     build_inscricoes_view,
 )
 from View.date_time_fields import add_date_time_pickers
+from View.data_tools_view import build_csv_tools_view, build_qr_reader_view
 
 
 logger = logging.getLogger(__name__)
@@ -171,6 +172,8 @@ def create_app(page: ft.Page) -> None:
     page.window.resizable = True
     profile_photo_picker = ft.FilePicker()
     page.services.append(profile_photo_picker)
+    data_tools_file_picker = ft.FilePicker()
+    page.services.append(data_tools_file_picker)
 
     sections = [
         ("overview", "Dashboard"),
@@ -181,6 +184,8 @@ def create_app(page: ft.Page) -> None:
         ("arrivals", "Chegadas"),
         ("results", "Classificações"),
         ("categories", "Escalões e apuramentos"),
+        ("qr-reader", "Leitor QR code"),
+        ("csv-tools", "Importar e exportar"),
         ("settings", "Definições"),
     ]
 
@@ -265,14 +270,14 @@ def create_app(page: ft.Page) -> None:
         [
             *[
                 create_navigation_item(key, label)
-                for key, label in sections[:8]
+                for key, label in sections[:-1]
             ],
             ft.Container(expand=True),
             demo_notice_container,
             ft.Divider(color="#E1E0D9"),
             *[
                 create_navigation_item(key, label)
-                for key, label in sections[8:]
+                for key, label in sections[-1:]
             ],
         ],
         spacing=8,
@@ -2045,6 +2050,22 @@ def create_app(page: ft.Page) -> None:
                 page,
                 current_competition_records_controller(),
                 current_provas_controller(),
+                palette,
+                panel,
+                read_only=demo_mode,
+            )
+        elif key == "qr-reader":
+            content = build_qr_reader_view(
+                page,
+                data_tools_file_picker,
+                palette,
+                panel,
+            )
+        elif key == "csv-tools":
+            content = build_csv_tools_view(
+                page,
+                alunos_turmas_controller,
+                data_tools_file_picker,
                 palette,
                 panel,
                 read_only=demo_mode,

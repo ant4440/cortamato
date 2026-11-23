@@ -19,9 +19,12 @@ O comando pede o email e a nova palavra-passe sem a mostrar no terminal. As pala
 ## Executar
 
 ```powershell
-python -m pip install -r requirements.txt
-python main.py
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
 ```
+
+No VS Code, abra `main.py` e use o botão **Run Python File**; a configuração do workspace seleciona o ambiente `.venv`. Também pode usar **Run and Debug** e escolher `Cortamato: executar main.py`.
 
 A janela começa no formulário de autenticação e passa ao painel após um início de sessão válido.
 
@@ -34,3 +37,11 @@ As chegadas são guardadas como tempos decorridos (`MM:SS.mmm`), não como data 
 ## Alunos e turmas
 
 A secção permite pesquisar alunos por nome ou número de processo, filtrar por turma, ordenar por nome (A–Z/Z–A) e adicionar, editar ou eliminar alunos e turmas. A eliminação exige seleção e confirmação; apagar alunos também apaga as respetivas inscrições e dados associados.
+
+## Leitor QR code
+
+A secção **Leitor QR code** permite selecionar uma imagem ou usar a câmara. Os endereços HTTP/HTTPS abrem no navegador predefinido; se o QR contiver um domínio sem protocolo, é usado HTTPS. Na janela da câmara, prima `Q` ou `Esc` para fechar o leitor.
+
+## Importar e exportar
+
+A secção **Importar e exportar** apresenta campos para escolher os ficheiros CSV de turmas e de alunos e botões para iniciar cada importação. Importe primeiro as turmas; os alunos usam os cabeçalhos exportados pela aplicação e datas no formato `AAAA-MM-DD`. Na exportação, escolha a pasta, o tipo de relatório e clique em **Exportar CSV**. Registos duplicados são ignorados e apresentados no resumo; linhas inválidas também são indicadas. As operações CSV requerem uma sessão autenticada e ligação à base de dados.
