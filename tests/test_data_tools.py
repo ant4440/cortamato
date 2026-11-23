@@ -10,6 +10,7 @@ from Controllers.csv_tools_controller import (
 )
 from Controllers.qr_reader_controller import QRReaderError, decode_qr_image
 from Model.alunos_turmas import Aluno, Turma
+from Model.competition_records import _validar_regra_apuramento
 from View.data_tools_view import (
     build_csv_tools_view,
     build_qr_reader_view,
@@ -102,6 +103,12 @@ class CsvToolsTests(unittest.TestCase):
 
         self.assertEqual(result.imported, 1)
         self.assertEqual(len(result.errors), 2)
+
+
+class QualificationRuleTests(unittest.TestCase):
+    def test_origin_and_destination_must_be_different(self) -> None:
+        with self.assertRaisesRegex(ValueError, "diferentes"):
+            _validar_regra_apuramento(1, 1, 1, 1)
 
 
 class QRUrlTests(unittest.TestCase):

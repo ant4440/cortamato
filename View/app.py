@@ -36,6 +36,7 @@ from View.competition_records_view import (
 )
 from View.date_time_fields import add_date_time_pickers
 from View.data_tools_view import build_csv_tools_view, build_qr_reader_view
+from View.image_crop import create_square_crop_canvas, minimum_crop_zoom
 
 
 logger = logging.getLogger(__name__)
@@ -1259,10 +1260,12 @@ def create_app(page: ft.Page) -> None:
             return
 
         minimum_dimension = min(image_width, image_height)
+        crop_canvas = create_square_crop_canvas(source_image)
+        crop_canvas_size = crop_canvas.width
         preview_size = 220
         output_size = 512
-        crop_center_x = image_width / 2
-        crop_center_y = image_height / 2
+        crop_center_x = crop_canvas_size / 2
+        crop_center_y = crop_canvas_size / 2
         crop_error = ft.Text("", size=12, color="#B42318", visible=False)
         crop_preview = ft.CircleAvatar(
             radius=preview_size / 2,
@@ -1270,7 +1273,7 @@ def create_app(page: ft.Page) -> None:
             bgcolor=LIGHT_PALETTE["surface"],
         )
         zoom_slider = ft.Slider(
-            min=1,
+            min=minimum_crop_zoom(source_image.size),
             max=3,
             value=1,
             divisions=20,
@@ -1287,11 +1290,11 @@ def create_app(page: ft.Page) -> None:
             half_side = crop_side() / 2
             crop_center_x = min(
                 max(crop_center_x, half_side),
-                image_width - half_side,
+                crop_canvas_size - half_side,
             )
             crop_center_y = min(
                 max(crop_center_y, half_side),
-                image_height - half_side,
+                crop_canvas_size - half_side,
             )
 
         def render_crop(size: int) -> bytes:
@@ -1299,9 +1302,9 @@ def create_app(page: ft.Page) -> None:
             side = crop_side()
             left = round(crop_center_x - side / 2)
             top = round(crop_center_y - side / 2)
-            left = min(max(left, 0), image_width - side)
-            top = min(max(top, 0), image_height - side)
-            cropped_image = source_image.crop(
+            left = min(max(left, 0), crop_canvas_size - side)
+            top = min(max(top, 0), crop_canvas_size - side)
+            cropped_image = crop_canvas.crop(
                 (left, top, left + side, top + side)
             ).resize((size, size), Image.Resampling.LANCZOS)
             image_data = BytesIO()
@@ -1388,7 +1391,7 @@ def create_app(page: ft.Page) -> None:
                 content=ft.Column(
                     [
                         ft.Text(
-                            "Arraste a imagem para escolher o enquadramento.",
+                            "Arraste a imagem e use o controlo para aproximar ou afastar.",
                             size=13,
                             color=MUTED,
                         ),
