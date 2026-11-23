@@ -1283,24 +1283,17 @@ def build_categories_view(
                 _show_options_error(page, "provas")
                 return
 
-            prova_field: ft.Control
-            if escalao is None:
-                prova_field = _dropdown(
-                    "Prova",
-                    [
-                        (
-                            str(prova.idprova),
-                            f"{prova.escola} · {prova.data.strftime('%d/%m/%Y')}",
-                        )
-                        for prova in provas
-                    ],
-                )
-            else:
-                prova_field = ft.Text(
-                    f"Prova: {escalao.prova_label}",
-                    size=14,
-                    color=palette["muted"],
-                )
+            prova_field = _dropdown(
+                "Prova",
+                [
+                    (
+                        str(prova.idprova),
+                        f"{prova.escola} · {prova.data.strftime('%d/%m/%Y')}",
+                    )
+                    for prova in provas
+                ],
+                str(escalao.prova_id) if escalao else None,
+            )
             name_field = ft.TextField(
                 label="Designação",
                 value=escalao.designacao if escalao else "",
@@ -1367,11 +1360,7 @@ def build_categories_view(
                 feedback.value = ""
                 feedback.visible = False
                 try:
-                    prova_id = (
-                        escalao.prova_id
-                        if escalao
-                        else _parse_int(prova_field.value, "uma prova")
-                    )
+                    prova_id = _parse_int(prova_field.value, "uma prova")
                     min_year = _parse_int(
                         min_year_field.value,
                         "um ano de nascimento mínimo",
