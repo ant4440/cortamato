@@ -1,5 +1,5 @@
 -- Database: cortamato
--- Schema (Passos 1 a 6 + 8)
+-- Schema (Passos 1 a 6 + 8) - Com suporte para Fotografias de Perfil
 -- Compatível com MySQL 8.0+ / MariaDB 10.2+
 
 DROP DATABASE IF EXISTS cortamato;
@@ -17,6 +17,7 @@ CREATE TABLE utilizador (
     nome            VARCHAR(150) NOT NULL,
     email           VARCHAR(150) NOT NULL,
     password_hash   VARCHAR(255) NOT NULL,
+    foto_perfil     VARCHAR(255) NULL,
     ativo           BOOLEAN NOT NULL DEFAULT TRUE,
     CONSTRAINT uq_utilizador_email UNIQUE (email),
     CONSTRAINT chk_utilizador_email CHECK (email LIKE '%@%.%')
@@ -142,7 +143,7 @@ CREATE TABLE dorsal (
 CREATE TABLE chegada (
     id                INT AUTO_INCREMENT PRIMARY KEY,
     inscricao_id      INT NOT NULL,
-    hora_chegada      DATETIME(3) NOT NULL,
+    tempo_chegada     TIME(3) NOT NULL,
     metodo            ENUM('qrcode','manual') NOT NULL DEFAULT 'manual',
     corrigido_de      INT NULL,
     CONSTRAINT uq_chegada_inscricao UNIQUE (inscricao_id),
@@ -234,7 +235,7 @@ CREATE TABLE apurado (
 CREATE OR REPLACE VIEW v_competidor AS
 SELECT
     i.idprova, i.numeroprocesso, d.numero AS numdorsal, d.estado AS estado_dorsal,
-    c.hora_chegada, CASE WHEN c.id IS NOT NULL THEN TRUE ELSE FALSE END AS tem_chegada,
+    c.tempo_chegada, CASE WHEN c.id IS NOT NULL THEN TRUE ELSE FALSE END AS tem_chegada,
     CASE WHEN ds.inscricao_id IS NOT NULL THEN TRUE ELSE FALSE END AS desistiu,
     CASE WHEN dcl.inscricao_id IS NOT NULL THEN TRUE ELSE FALSE END AS desclassificado
 FROM inscricao i

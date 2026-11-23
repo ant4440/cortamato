@@ -1,13 +1,13 @@
 USE cortamato;
 
 -- ---------------------------------------------------------------------------
--- Utilizadores e Perfis
+-- Utilizadores e Perfis (Com Fotografias de Perfil)
 -- ---------------------------------------------------------------------------
-INSERT INTO utilizador (nome, email, password_hash, ativo) VALUES
-    ('Admin',              'admin@escola.pt',      'x', TRUE),
-    ('Carlos Carvalho',    'carlos@escola.pt',     'x', TRUE),
-    ('Cristiano Ferreira', 'cristiano@escola.pt',  'x', TRUE),
-    ('Ana Professora',     'ana@escola.pt',        'x', TRUE);
+INSERT INTO utilizador (nome, email, password_hash, foto_perfil, ativo) VALUES
+    ('Admin',              'admin@escola.pt',      'x', NULL, TRUE),
+    ('Carlos Carvalho',    'carlos@escola.pt',     'x', 'carlos.png', TRUE),
+    ('Cristiano Ferreira', 'cristiano@escola.pt',  'x', 'cristiano.png', TRUE),
+    ('Ana Professora',     'ana@escola.pt',        'x', NULL, TRUE);
 
 INSERT INTO perfil (nome) VALUES ('admin'), ('professor'), ('diretor_turma'), ('secretariado');
 
@@ -104,16 +104,16 @@ INSERT INTO dorsal (inscricao_id, numero, estado, entregue_em) VALUES
 -- ---------------------------------------------------------------------------
 -- Chegadas
 -- ---------------------------------------------------------------------------
-INSERT INTO chegada (inscricao_id, hora_chegada, metodo) VALUES
-    (1, '2026-11-12 10:00:12.120', 'qrcode'),
-    (2, '2026-11-12 10:00:10.450', 'qrcode'),
-    (3, '2026-11-12 10:00:15.890', 'manual'),
-    (4, '2026-11-12 10:00:11.230', 'qrcode'),
-    (5, '2026-11-12 10:00:14.560', 'manual'),
-    (6, '2026-11-12 10:00:09.120', 'qrcode'),
-    (7, '2026-11-12 10:00:13.780', 'manual'),
-    (8, '2026-11-12 10:00:16.340', 'qrcode'),
-    (9, '2026-11-12 10:00:08.900', 'qrcode');
+INSERT INTO chegada (inscricao_id, tempo_chegada, metodo) VALUES
+    (1, '01:00:12.120', 'qrcode'),
+    (2, '01:00:10.450', 'qrcode'),
+    (3, '01:00:15.890', 'manual'),
+    (4, '01:00:11.230', 'qrcode'),
+    (5, '01:00:14.560', 'manual'),
+    (6, '01:00:09.120', 'qrcode'),
+    (7, '01:00:13.780', 'manual'),
+    (8, '01:00:16.340', 'qrcode'),
+    (9, '01:00:08.900', 'qrcode');
 
 -- Desistência (10010) e Desclassificação (10009)
 INSERT INTO desistencia (inscricao_id, hora, motivo) VALUES

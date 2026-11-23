@@ -1,0 +1,57 @@
+CORTA-MATO AEPBS 2024/2025
+ANÁLISE E LEVANTAMENTO DE REQUISITOS — RESUMO
+
+1. Análise dos dados
+A folha de inscrições contém 407 registos: 271 masculinos (66,6%) e 136 femininos (33,4%). Foram identificados 406 nomes distintos, pelo que é necessário verificar se existe alguma inscrição duplicada. A distribuição por escalão é: Infantis A, 59 alunos; Infantis B, 152; Iniciados, 69; Juvenis, 127. Infantis B é o escalão com mais inscrições. A folha analisada não apresenta participantes juniores, pelo que importa confirmar se esta categoria não teve inscritos ou se os dados estão incompletos.
+
+Os principais campos a analisar por aluno são: número de processo, nome, ano de nascimento, sexo, ano de escolaridade, turma, escalão, dorsal, posição de chegada e estado de participação. A classificação, as faltas e as desistências devem ser confirmadas nas respetivas folhas; não se deve assumir que todos os inscritos terminaram a prova.
+
+2. Problemas e necessidades identificados
+- Verificar possíveis inscrições duplicadas e garantir uma identificação única por aluno.
+- Validar os campos obrigatórios e a correspondência entre ano de nascimento e escalão.
+- Associar corretamente cada dorsal ao aluno e à prova.
+- Registar classificações, desistências e faltas de forma consistente.
+- Evitar divergências entre as folhas de inscrições, classificação, faltas e apuramento.
+- Facilitar a produção de relatórios e estatísticas por aluno, turma, escalão e sexo.
+
+3. Requisitos funcionais
+RF01 — Registar os dados dos alunos.
+RF02 — Consultar, pesquisar e editar alunos.
+RF03 — Atribuir um identificador único a cada aluno.
+RF04 — Gerir os dorsais dos participantes.
+RF05 — Organizar os alunos por escalão e sexo segundo as regras da competição.
+RF06 — Validar dados e detetar possíveis duplicações.
+RF07 — Registar a ordem de chegada e a classificação individual.
+RF08 — Registar faltas, justificações e desistências.
+RF09 — Calcular classificações coletivas segundo as regras definidas.
+RF10 — Identificar alunos apurados para fases seguintes.
+RF11 — Gerar listas de participantes e classificações.
+RF12 — Exportar relatórios para Excel ou PDF.
+RF13 — Consultar estatísticas de participação.
+
+4. Requisitos não funcionais
+- Segurança: limitar o acesso a utilizadores autorizados.
+- Privacidade: usar apenas os dados pessoais necessários.
+- Fiabilidade e integridade: manter os registos e classificações consistentes.
+- Usabilidade: permitir introdução e consulta simples dos dados.
+- Desempenho: possibilitar pesquisas e consultas rápidas.
+- Rastreabilidade: registar alterações às classificações, incluindo autor e data.
+- Compatibilidade: permitir importação e exportação de formatos comuns.
+
+5. Modelo de dados proposto
+ALUNO: identificador, nome, ano de nascimento, sexo, ano e turma.
+PROVA: ano letivo, concelho, escola, data e horários.
+INSCRIÇÃO: associa um aluno a uma prova.
+COMPETIDOR: guarda o dorsal, escalão, estado de desistência e classificação para uma inscrição específica.
+
+6. Regras a esclarecer
+- Como é definido o escalão?
+- Como são atribuídos os dorsais?
+- Como são tratadas as desistências e os alunos que não terminam?
+- Como se calculam as classificações coletivas e os desempates?
+- Quais são os critérios de apuramento para a fase seguinte?
+- Como são validadas as faltas e justificações?
+- Quem pode alterar uma classificação validada?
+
+Conclusão
+Os dados permitem organizar os participantes por aluno, escalão, sexo e turma, mas é necessário verificar a consistência entre inscrições, dorsais, classificações e faltas. Recomenda-se um sistema centralizado para gerir os alunos e as provas, validar registos, calcular classificações segundo regras definidas e gerar relatórios. A análise individual completa exige cruzar cada inscrição com os dados efetivamente disponíveis de classificação, dorsal e estado de participação.

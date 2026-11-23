@@ -24,7 +24,7 @@ def get_connection():
         connection = mysql.connector.connect(**get_db_config())
         if connection.is_connected():
             return connection
-        raise ConnectionError("Could not establish a database connection.")
+        raise ConnectionError("Base de dados offline.")
     except Error as exc:
         raise ConnectionError(f"Unable to connect to MySQL: {exc}") from exc
 
