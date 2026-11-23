@@ -108,7 +108,6 @@ def listar_inscricoes() -> list[Inscricao]:
         FROM inscricao AS i
         JOIN aluno AS a ON a.numeroprocesso = i.numeroprocesso
         JOIN prova AS p ON p.idprova = i.idprova
-        WHERE p.data >= CURDATE()
         ORDER BY p.data DESC, a.nome, i.id
         """,
         (),
@@ -127,7 +126,6 @@ def listar_dorsais() -> list[Dorsal]:
         JOIN inscricao AS i ON i.id = d.inscricao_id
         JOIN aluno AS a ON a.numeroprocesso = i.numeroprocesso
         JOIN prova AS p ON p.idprova = i.idprova
-        WHERE p.data >= CURDATE()
         ORDER BY p.data DESC, d.numero
         """,
         (),
@@ -148,7 +146,6 @@ def listar_chegadas() -> list[Chegada]:
         JOIN aluno AS a ON a.numeroprocesso = i.numeroprocesso
         JOIN prova AS p ON p.idprova = i.idprova
         LEFT JOIN dorsal AS d ON d.inscricao_id = i.id
-        WHERE p.data >= CURDATE()
         ORDER BY c.tempo_chegada IS NULL, c.tempo_chegada, c.id
         """,
         (),
@@ -169,7 +166,6 @@ def listar_classificacoes() -> list[Classificacao]:
         JOIN aluno AS a ON a.numeroprocesso = i.numeroprocesso
         JOIN prova AS p ON p.idprova = c.prova_id
         LEFT JOIN escalao AS e ON e.id = c.escalao_id
-        WHERE p.data >= CURDATE()
         ORDER BY p.data DESC, e.designacao, c.posicao
         """,
         (),
@@ -186,7 +182,6 @@ def listar_escaloes() -> list[Escalao]:
                CONCAT(p.escola, ' · ', DATE_FORMAT(p.data, '%d/%m/%Y'))
         FROM escalao AS e
         JOIN prova AS p ON p.idprova = e.prova_id
-        WHERE p.data >= CURDATE()
         ORDER BY p.data DESC, e.designacao
         """,
         (),
@@ -207,7 +202,6 @@ def listar_regras_apuramento() -> list[RegraApuramento]:
         JOIN prova AS po ON po.idprova = r.prova_origem_id
         JOIN prova AS pd ON pd.idprova = r.prova_destino_id
         JOIN escalao AS e ON e.id = r.escalao_id
-        WHERE po.data >= CURDATE() AND pd.data >= CURDATE()
         ORDER BY pd.data DESC, po.data DESC, e.designacao
         """,
         (),
@@ -232,10 +226,9 @@ def listar_apurados(prova_destino_id: int | None = None) -> list[Apurado]:
         LEFT JOIN escalao AS e ON e.id = c.escalao_id
     """
     parameters: tuple[object, ...] = ()
-    query += " WHERE pd.data >= CURDATE() AND po.data >= CURDATE()"
     if prova_destino_id is not None:
         _validar_id(prova_destino_id, "A prova de destino")
-        query += " AND a.prova_destino_id = %s"
+        query += " WHERE a.prova_destino_id = %s"
         parameters = (prova_destino_id,)
     query += " ORDER BY pd.data DESC, e.designacao, c.posicao, al.nome"
     rows = _fetch_all(query, parameters, "Unable to load qualified participants")

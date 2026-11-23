@@ -27,12 +27,17 @@ py -3.12 -m venv .venv
 No VS Code, abra `main.py` e use o botão **Run Python File**; a configuração do workspace seleciona o ambiente `.venv`. Também pode usar **Run and Debug** e escolher `Cortamato: executar main.py`.
 
 A janela começa no formulário de autenticação e passa ao painel após um início de sessão válido.
+As listagens de provas e respetivos registos incluem também provas passadas; o dashboard continua a destacar apenas as próximas provas.
 
 Para abrir a demonstração sem uma ligação MySQL, clique no `T` de “CORTA”, no `T` de “MATO” e no `E` e `S` de “ESCOLAR”, em qualquer ordem. As letras ficam vermelhas ao serem selecionadas. Todas as secções ficam disponíveis para consulta com dados fictícios; as ações de criação, edição e eliminação ficam desativadas. O aviso “DADOS FICTÍCIOS” pisca no menu lateral.
 
 ## Atualização das chegadas
 
 As chegadas são guardadas como tempos decorridos (`MM:SS.mmm`), não como data e hora. Numa base de dados v0.5 já existente, execute `SQL/migrate_chegada_tempo.sql` uma vez antes de atualizar a aplicação. O script preserva os valores antigos de `hora_chegada`, que não podem ser convertidos com segurança em tempos decorridos; nas provas ainda listadas pela aplicação, as chegadas antigas aparecem sem tempo até que este seja preenchido ao editar o registo.
+
+## Atualização dos apuramentos
+
+Numa base de dados existente que ainda não tenha as tabelas `regra_apuramento` e `apurado`, execute `SQL/migrate_apuramentos.sql`. Esta migração cria apenas as tabelas em falta e não apaga dados. Não execute `SQL/cortamatov0.5.sql` numa base de dados existente: esse script recria a base de dados.
 
 ## Alunos e turmas
 

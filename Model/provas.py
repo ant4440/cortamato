@@ -21,7 +21,7 @@ class Prova:
 
 
 def listar_provas() -> list[Prova]:
-    """Return events that have not yet passed, ordered by date and start time."""
+    """Return all events ordered by date and start time."""
     connection = get_connection()
     cursor = None
 
@@ -31,7 +31,6 @@ def listar_provas() -> list[Prova]:
             """
             SELECT idprova, anolectivo, concelho, escola, data, horainicio, horafinal
             FROM prova
-            WHERE data >= CURDATE()
             ORDER BY data, horainicio, idprova
             """
         )
