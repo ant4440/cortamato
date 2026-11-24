@@ -111,6 +111,13 @@ class QualificationRuleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "diferentes"):
             _validar_regra_apuramento(1, 1, 1, 1)
 
+<<<<<<< Updated upstream
+=======
+    def test_boolean_values_are_not_valid_positive_numbers(self) -> None:
+        with self.assertRaisesRegex(ValueError, "inválida"):
+            _validar_regra_apuramento(True, True, 1, 1)
+
+>>>>>>> Stashed changes
 
 class QRUrlTests(unittest.TestCase):
     def test_only_http_and_https_urls_are_accepted(self) -> None:
