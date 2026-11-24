@@ -169,13 +169,6 @@ def build_csv_tools_view(
     selected_import_files: dict[str, ft.FilePickerFile] = {}
     import_file_slots: dict[str, ft.Row] = {}
     import_browse_buttons: dict[str, ft.OutlinedButton] = {}
-    export_directory: str | None = None
-    export_file_path = ft.TextField(
-        label="Destino do ficheiro CSV",
-        read_only=True,
-        width=520,
-        height=48,
-    )
 
     def set_import_status(
         kind: str,
@@ -247,6 +240,16 @@ def build_csv_tools_view(
             color=palette["error"] if is_error else palette["muted"],
         )
         page.update()
+
+    def feedback_slot(status: ft.Text, height: int) -> ft.Container:
+        return ft.Container(
+            content=ft.Column(
+                [status],
+                spacing=0,
+                scroll=ft.ScrollMode.AUTO,
+            ),
+            height=height,
+        )
 
     def display_import_summary(kind: str, summary: ImportSummary) -> None:
         message = (
@@ -340,41 +343,10 @@ def build_csv_tools_view(
     async def import_students_file(_event: object) -> None:
         await import_selected_file("students", import_students_csv)
 
-    async def choose_classes_file(_event: object) -> None:
-        await choose_import_file("classes", "Selecionar CSV de turmas")
-
-    async def import_classes_file(_event: object) -> None:
-        await import_selected_file("classes", import_classes_csv)
-
-    async def choose_students_file(_event: object) -> None:
-        await choose_import_file("students", "Selecionar CSV de alunos")
-
-    async def import_students_file(_event: object) -> None:
-        await import_selected_file("students", import_students_csv)
-
-    async def choose_export_directory(_event: object) -> None:
-        nonlocal export_directory
-        directory = await file_picker.get_directory_path(
-            dialog_title="Selecionar pasta para exportação",
-        )
-        if directory is None:
-            return
-        export_directory = directory
-        export_file_path.value = str(Path(directory) / export_filename())
-        set_export_status("")
-
     def export_filename() -> str:
         return "alunos.csv" if export_kind.value == "students" else "turmas.csv"
 
-    def update_export_path(_event: object) -> None:
-        if export_directory is not None:
-            export_file_path.value = str(Path(export_directory) / export_filename())
-            page.update()
-
     async def export_csv(_event: object) -> None:
-        if export_directory is None:
-            set_export_status("Escolha primeiro a pasta de destino.", True)
-            return
         is_student_export = export_kind.value == "students"
         exporter = export_students_csv if is_student_export else export_classes_csv
         try:
@@ -390,22 +362,14 @@ def build_csv_tools_view(
             set_export_status(str(exc), True)
             return
 
-        target_path = Path(export_directory) / export_filename()
         try:
-            if target_path.exists():
-                saved_path = await file_picker.save_file(
-                    dialog_title="Exportar CSV",
-                    file_name=target_path.name,
-                    file_type=ft.FilePickerFileType.CUSTOM,
-                    allowed_extensions=["csv"],
-                    initial_directory=export_directory,
-                    src_bytes=content,
-                )
-                if saved_path is None:
-                    return
-                target_path = Path(saved_path)
-            else:
-                target_path.write_bytes(content)
+            saved_path = await file_picker.save_file(
+                dialog_title="Exportar CSV",
+                file_name=export_filename(),
+                file_type=ft.FilePickerFileType.CUSTOM,
+                allowed_extensions=["csv"],
+                src_bytes=content,
+            )
         except OSError:
             logger.exception("Could not write exported CSV file")
             set_export_status("Não foi possível guardar o ficheiro CSV.", True)
@@ -414,8 +378,8 @@ def build_csv_tools_view(
             set_export_status(str(exc), True)
             return
 
-        export_file_path.value = str(target_path)
-        set_export_status(f"Ficheiro exportado: {target_path}")
+        if saved_path is not None:
+            set_export_status("Ficheiro exportado com sucesso!")
 
     if read_only:
         import_notice.value = (
@@ -467,15 +431,7 @@ def build_csv_tools_view(
                 ),
                 ft.Row(
                     [
-                        class_file_path,
-                        ft.OutlinedButton(
-                            content="Procurar...",
-                            disabled=read_only,
-                            on_click=lambda _event: choose_import_file(
-                                "classes",
-                                "Selecionar CSV de turmas",
-                            ),
-                        ),
+                        class_file_slot,
                         ft.FilledButton(
                             content="Importar turmas",
                             disabled=read_only,
@@ -484,7 +440,7 @@ def build_csv_tools_view(
                     ],
                     wrap=True,
                 ),
-                class_import_status,
+                feedback_slot(class_import_status, 24),
                 ft.Divider(color=palette["divider"]),
                 ft.Text(
                     "Alunos",
@@ -494,15 +450,7 @@ def build_csv_tools_view(
                 ),
                 ft.Row(
                     [
-                        student_file_path,
-                        ft.OutlinedButton(
-                            content="Procurar...",
-                            disabled=read_only,
-                            on_click=lambda _event: choose_import_file(
-                                "students",
-                                "Selecionar CSV de alunos",
-                            ),
-                        ),
+                        student_file_slot,
                         ft.FilledButton(
                             content="Importar alunos",
                             disabled=read_only,
@@ -511,7 +459,7 @@ def build_csv_tools_view(
                     ],
                     wrap=True,
                 ),
-                student_import_status,
+                feedback_slot(student_import_status, 24),
             ],
             spacing=12,
             tight=True,
@@ -527,7 +475,6 @@ def build_csv_tools_view(
             ft.DropdownOption(key="students", text="Alunos"),
             ft.DropdownOption(key="classes", text="Turmas"),
         ],
-        on_select=update_export_path,
         disabled=read_only,
     )
     export_panel = panel_builder(
@@ -540,23 +487,12 @@ def build_csv_tools_view(
                     color=palette["text"],
                 ),
                 export_kind,
-                ft.Row(
-                    [
-                        export_file_path,
-                        ft.OutlinedButton(
-                            content="Procurar...",
-                            disabled=read_only,
-                            on_click=choose_export_directory,
-                        ),
-                        ft.FilledButton(
-                            content="Exportar CSV",
-                            disabled=read_only,
-                            on_click=export_csv,
-                        ),
-                    ],
-                    wrap=True,
+                ft.FilledButton(
+                    content="Exportar CSV",
+                    disabled=read_only,
+                    on_click=export_csv,
                 ),
-                export_status,
+                feedback_slot(export_status, 24),
             ],
             spacing=12,
             tight=True,

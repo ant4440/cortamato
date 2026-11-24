@@ -43,10 +43,14 @@ Numa base de dados existente que ainda não tenha as tabelas `regra_apuramento` 
 
 A secção permite pesquisar alunos por nome ou número de processo, filtrar por turma, ordenar por nome (A–Z/Z–A) e adicionar, editar ou eliminar alunos e turmas. A eliminação exige seleção e confirmação; apagar alunos também apaga as respetivas inscrições e dados associados.
 
+## Definições
+
+Ative **Esconder ID's** para ocultar as colunas de ID nas tabelas em que são apresentadas, incluindo provas, inscrições, dorsais, chegadas, classificações, escalões e regras de apuramento.
+
 ## Leitor QR code
 
 A secção **Leitor QR code** permite selecionar uma imagem ou usar a câmara. Os endereços HTTP/HTTPS abrem no navegador predefinido; se o QR contiver um domínio sem protocolo, é usado HTTPS. Na janela da câmara, prima `Q` ou `Esc` para fechar o leitor.
 
 ## Importar e exportar
 
-A secção **Importar e exportar** apresenta botões para selecionar e importar ficheiros CSV de turmas e de alunos. Use **Procurar...** para selecionar o ficheiro e **Importar turmas** ou **Importar alunos** para iniciar a importação. Importe primeiro as turmas; os alunos usam os cabeçalhos exportados pela aplicação e datas no formato `AAAA-MM-DD`. Os ficheiros podem estar codificados em UTF-8 ou Windows-1252. Na exportação, escolha a pasta, o tipo de relatório e clique em **Exportar CSV**. Registos duplicados são ignorados e apresentados no resumo; linhas inválidas também são indicadas. As operações CSV requerem uma sessão autenticada e ligação à base de dados. As mensagens temporárias após ações desaparecem automaticamente ao fim de 3 segundos.
+A secção **Importar e exportar** apresenta botões para selecionar e importar ficheiros CSV de turmas e de alunos. Use **Procurar...** para selecionar o ficheiro e **Importar turmas** ou **Importar alunos** para iniciar a importação. Importe primeiro as turmas; os alunos usam os cabeçalhos exportados pela aplicação e datas no formato `AAAA-MM-DD`. Os ficheiros podem estar codificados em UTF-8 ou Windows-1252. Para exportar, escolha o tipo de relatório e clique em **Exportar CSV**; selecione o nome e o destino no diálogo para guardar o ficheiro. Registos duplicados são ignorados e apresentados no resumo; linhas inválidas também são indicadas. As operações CSV requerem uma sessão autenticada e ligação à base de dados. As mensagens temporárias após ações desaparecem automaticamente ao fim de 3 segundos.

@@ -208,6 +208,7 @@ def create_app(page: ft.Page) -> None:
     current_user_id: int | None = None
     current_user_email: str | None = None
     current_user_photo: str | None = None
+    hide_table_ids = False
     demo_mode = False
     demo_notice = ft.Text(
         "DADOS FICTÍCIOS",
@@ -411,10 +412,15 @@ def create_app(page: ft.Page) -> None:
                 for prova in current_provas
             ]
 
-        return [
-            ft.DataRow(
-                cells=[
-                    ft.DataCell(ft.Text(str(prova.idprova), size=14, color=TEXT)),
+        rows: list[ft.DataRow] = []
+        for prova in current_provas:
+            cells: list[ft.DataCell] = []
+            if not hide_table_ids:
+                cells.append(
+                    ft.DataCell(ft.Text(str(prova.idprova), size=14, color=TEXT))
+                )
+            cells.extend(
+                [
                     ft.DataCell(ft.Text(prova.anolectivo, size=14, color=TEXT)),
                     ft.DataCell(
                         ft.Text(prova.data.strftime("%d/%m/%Y"), size=14, color=TEXT)
@@ -431,8 +437,8 @@ def create_app(page: ft.Page) -> None:
                     ft.DataCell(prova_row_action(prova)),
                 ]
             )
-            for prova in current_provas
-        ]
+            rows.append(ft.DataRow(cells=cells))
+        return rows
 
     def set_table_layout(compact: bool) -> None:
         nonlocal compact_table
@@ -446,15 +452,20 @@ def create_app(page: ft.Page) -> None:
                 ft.DataColumn(ft.Text("", size=13, color=MUTED)),
             ]
         else:
-            event_table.columns = [
-                ft.DataColumn(ft.Text("ID", size=13, color=MUTED)),
-                ft.DataColumn(ft.Text("Ano letivo", size=13, color=MUTED)),
-                ft.DataColumn(ft.Text("Data", size=13, color=MUTED)),
-                ft.DataColumn(ft.Text("Horário", size=13, color=MUTED)),
-                ft.DataColumn(ft.Text("Concelho", size=13, color=MUTED)),
-                ft.DataColumn(ft.Text("Escola", size=13, color=MUTED)),
-                ft.DataColumn(ft.Text("", size=13, color=MUTED)),
-            ]
+            event_columns: list[ft.DataColumn] = []
+            if not hide_table_ids:
+                event_columns.append(ft.DataColumn(ft.Text("ID", size=13, color=MUTED)))
+            event_columns.extend(
+                [
+                    ft.DataColumn(ft.Text("Ano letivo", size=13, color=MUTED)),
+                    ft.DataColumn(ft.Text("Data", size=13, color=MUTED)),
+                    ft.DataColumn(ft.Text("Horário", size=13, color=MUTED)),
+                    ft.DataColumn(ft.Text("Concelho", size=13, color=MUTED)),
+                    ft.DataColumn(ft.Text("Escola", size=13, color=MUTED)),
+                    ft.DataColumn(ft.Text("", size=13, color=MUTED)),
+                ]
+            )
+            event_table.columns = event_columns
         event_table.rows = build_table_rows(compact)
 
     result_message = ft.Text("", size=12, color=MUTED, visible=False)
@@ -483,6 +494,11 @@ def create_app(page: ft.Page) -> None:
     dark_theme_button = ft.OutlinedButton(
         content="Escuro",
         width=120,
+    )
+    hide_ids_switch = ft.Switch(
+        value=False,
+        scale=0.8,
+        material_tap_target_size=ft.MaterialTapTargetSize.SHRINK_WRAP,
     )
     change_email_button = ft.OutlinedButton(
         content="Alterar email",
@@ -1076,8 +1092,15 @@ def create_app(page: ft.Page) -> None:
         page.theme_mode = ft.ThemeMode.DARK if dark else ft.ThemeMode.LIGHT
         apply_theme_colors(dark)
 
+    def toggle_hide_table_ids(event: ft.Event[ft.Switch]) -> None:
+        nonlocal hide_table_ids
+        hide_table_ids = bool(event.control.value)
+        set_table_layout(compact_table)
+        page.update()
+
     light_theme_button.on_click = lambda _event: set_theme(False)
     dark_theme_button.on_click = lambda _event: set_theme(True)
+    hide_ids_switch.on_change = toggle_hide_table_ids
 
     def profile_photo_source(photo_path: str | None) -> str | None:
         if not photo_path:
@@ -1287,14 +1310,7 @@ def create_app(page: ft.Page) -> None:
         minimum_dimension = min(image_width, image_height)
         crop_canvas = create_square_crop_canvas(source_image)
         crop_canvas_size = crop_canvas.width
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
         minimum_zoom = minimum_crop_zoom(source_image.size)
->>>>>>> Stashed changes
-=======
-        minimum_zoom = minimum_crop_zoom(source_image.size)
->>>>>>> Stashed changes
         preview_size = 220
         output_size = 512
         crop_center_x = crop_canvas_size / 2
@@ -1306,15 +1322,7 @@ def create_app(page: ft.Page) -> None:
             bgcolor=LIGHT_PALETTE["surface"],
         )
         zoom_slider = ft.Slider(
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            min=minimum_crop_zoom(source_image.size),
-=======
             min=minimum_zoom,
->>>>>>> Stashed changes
-=======
-            min=minimum_zoom,
->>>>>>> Stashed changes
             max=3,
             value=minimum_zoom,
             divisions=20,
@@ -2086,6 +2094,7 @@ def create_app(page: ft.Page) -> None:
                 palette,
                 panel,
                 read_only=demo_mode,
+                hide_ids=hide_table_ids,
             )
         elif key == "bibs":
             content = build_dorsais_view(
@@ -2095,6 +2104,7 @@ def create_app(page: ft.Page) -> None:
                 palette,
                 panel,
                 read_only=demo_mode,
+                hide_ids=hide_table_ids,
             )
         elif key == "arrivals":
             content = build_chegadas_view(
@@ -2104,6 +2114,7 @@ def create_app(page: ft.Page) -> None:
                 palette,
                 panel,
                 read_only=demo_mode,
+                hide_ids=hide_table_ids,
             )
         elif key == "results":
             content = build_classificacoes_view(
@@ -2113,6 +2124,7 @@ def create_app(page: ft.Page) -> None:
                 palette,
                 panel,
                 read_only=demo_mode,
+                hide_ids=hide_table_ids,
             )
         elif key == "categories":
             content = build_categories_view(
@@ -2122,6 +2134,7 @@ def create_app(page: ft.Page) -> None:
                 palette,
                 panel,
                 read_only=demo_mode,
+                hide_ids=hide_table_ids,
             )
         elif key == "qr-reader":
             content = build_qr_reader_view(
@@ -2157,6 +2170,34 @@ def create_app(page: ft.Page) -> None:
                                     [light_theme_button, dark_theme_button],
                                     spacing=12,
                                     wrap=True,
+                                ),
+                            ],
+                            spacing=12,
+                            tight=True,
+                        ),
+                        padding=22,
+                    ),
+                    panel(
+                        ft.Column(
+                            [
+                                ft.Text(
+                                    "Aparência",
+                                    size=16,
+                                    weight=ft.FontWeight.W_600,
+                                    color=TEXT,
+                                ),
+                                ft.Row(
+                                    [
+                                        ft.Text(
+                                            "Esconder ID's",
+                                            size=14,
+                                            color=palette["text"],
+                                        ),
+                                        hide_ids_switch,
+                                    ],
+                                    spacing=18,
+                                    tight=True,
+                                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                                 ),
                             ],
                             spacing=12,

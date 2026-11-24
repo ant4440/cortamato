@@ -173,12 +173,18 @@ def _build_management_table(
     read_only: bool = False,
     prova_filter: ft.Dropdown | None = None,
     record_prova_id: Callable[[Record], int] | None = None,
+    hide_ids: bool = False,
 ) -> ft.Control:
     records: list[Record] = []
     selected_ids: set[RecordKey] = set()
     selection_mode = False
+    has_id_column = bool(columns) and columns[0].strip().casefold() == "id"
+    visible_columns = columns[1:] if hide_ids and has_id_column else columns
     table = ft.DataTable(
-        columns=[ft.DataColumn(ft.Text(title, size=13, color=palette["muted"])) for title in columns]
+        columns=[
+            ft.DataColumn(ft.Text(title, size=13, color=palette["muted"]))
+            for title in visible_columns
+        ]
         + [ft.DataColumn(ft.Text("", size=13, color=palette["muted"]))],
         rows=[],
         bgcolor=palette["surface"],
@@ -258,9 +264,12 @@ def _build_management_table(
                     tooltip=f"Editar {entity}",
                     on_click=lambda _event, item=record: open_form(item, refresh),
                 )
+            values = row_values(record)
+            if hide_ids and has_id_column:
+                values = values[1:]
             cells = [
                 ft.DataCell(ft.Text(value, size=14, color=palette["text"]))
-                for value in row_values(record)
+                for value in values
             ]
             cells.append(ft.DataCell(action))
             rows.append(ft.DataRow(cells=cells))
@@ -450,6 +459,7 @@ def build_inscricoes_view(
     palette: dict[str, str],
     panel_builder: Callable[..., ft.Container],
     read_only: bool = False,
+    hide_ids: bool = False,
 ) -> ft.Control:
     prova_filter = _build_prova_filter(page, provas_controller)
     states = [
@@ -643,6 +653,7 @@ def build_inscricoes_view(
         read_only=read_only,
         prova_filter=prova_filter,
         record_prova_id=lambda item: item.idprova,
+        hide_ids=hide_ids,
     )
 
 
@@ -653,6 +664,7 @@ def build_dorsais_view(
     palette: dict[str, str],
     panel_builder: Callable[..., ft.Container],
     read_only: bool = False,
+    hide_ids: bool = False,
 ) -> ft.Control:
     prova_filter = _build_prova_filter(page, provas_controller)
     prova_ids_by_inscricao: dict[int, int] = {}
@@ -873,6 +885,7 @@ def build_dorsais_view(
             item.inscricao_id,
             0,
         ),
+        hide_ids=hide_ids,
     )
 
 
@@ -883,6 +896,7 @@ def build_chegadas_view(
     palette: dict[str, str],
     panel_builder: Callable[..., ft.Container],
     read_only: bool = False,
+    hide_ids: bool = False,
 ) -> ft.Control:
     prova_filter = _build_prova_filter(page, provas_controller)
     prova_ids_by_inscricao: dict[int, int] = {}
@@ -1049,6 +1063,7 @@ def build_chegadas_view(
             item.inscricao_id,
             0,
         ),
+        hide_ids=hide_ids,
     )
 
 
@@ -1059,6 +1074,7 @@ def build_classificacoes_view(
     palette: dict[str, str],
     panel_builder: Callable[..., ft.Container],
     read_only: bool = False,
+    hide_ids: bool = False,
 ) -> ft.Control:
     prova_filter = _build_prova_filter(page, provas_controller)
 
@@ -1259,6 +1275,7 @@ def build_classificacoes_view(
         read_only=read_only,
         prova_filter=prova_filter,
         record_prova_id=lambda item: item.prova_id,
+        hide_ids=hide_ids,
     )
 
 
@@ -1269,6 +1286,7 @@ def build_categories_view(
     palette: dict[str, str],
     panel_builder: Callable[..., ft.Container],
     read_only: bool = False,
+    hide_ids: bool = False,
 ) -> ft.Control:
     selected_tab = "escaloes"
     tab_content = ft.Container(expand=True)
@@ -1446,6 +1464,7 @@ def build_categories_view(
             "As regras de apuramento e listas de partida associadas serão eliminadas; "
             "as classificações manter-se-ão sem escalão.",
             read_only=read_only,
+            hide_ids=hide_ids,
         )
 
     def build_rules_table() -> ft.Control:
@@ -1588,6 +1607,7 @@ def build_categories_view(
             "Ainda não existem regras de apuramento.",
             "Gere novamente os apuramentos do evento de destino para aplicar esta alteração.",
             read_only=read_only,
+            hide_ids=hide_ids,
         )
 
     def build_qualified_table() -> ft.Control:
@@ -1782,6 +1802,7 @@ def build_categories_view(
             allow_add=False,
             extra_actions=generate_button,
             read_only=read_only,
+            hide_ids=hide_ids,
         )
 
     def select_tab(key: str, update_page: bool = True) -> None:
