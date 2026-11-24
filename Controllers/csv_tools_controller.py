@@ -195,7 +195,10 @@ def _read_csv(
     try:
         text = content.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
-        raise ValueError("O ficheiro deve estar codificado em UTF-8.") from exc
+        try:
+            text = content.decode("cp1252")
+        except UnicodeDecodeError:
+            raise ValueError("O ficheiro deve estar codificado em UTF-8 ou Windows-1252.") from exc
     if not text.strip():
         raise ValueError("O ficheiro CSV está vazio.")
 

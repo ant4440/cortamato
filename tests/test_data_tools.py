@@ -61,6 +61,18 @@ class FakeAlunosTurmasController:
 
 
 class CsvToolsTests(unittest.TestCase):
+    def test_import_accepts_windows_1252_csv(self) -> None:
+        controller = FakeAlunosTurmasController()
+        content = (
+            "numeroprocesso,nome,datanasc,sexo,ano_escolar,letra\n"
+            "112,João,2012-04-03,F,7,A"
+        ).encode("cp1252")
+
+        result = import_students_csv(content, controller)
+
+        self.assertEqual(result.imported, 1)
+        self.assertEqual(controller.students[-1].nome, "João")
+
     def test_import_classes_ignores_existing_and_repeated_rows(self) -> None:
         controller = FakeAlunosTurmasController()
         content = (
@@ -116,6 +128,7 @@ class QualificationRuleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "inválida"):
             _validar_regra_apuramento(True, True, 1, 1)
 
+>>>>>>> 485d34971cc9224dcbdb2c5ec73a08faf8a63ea2
 
 class QRUrlTests(unittest.TestCase):
     def test_only_http_and_https_urls_are_accepted(self) -> None:
@@ -186,6 +199,7 @@ class DataToolsViewTests(unittest.TestCase):
         self.assertEqual([button.content for button in buttons], ["Selecionar imagem"])
 
     def test_qr_reader_view_has_visible_image_and_camera_actions(self) -> None:
+
         class PageStub:
             def update(self) -> None:
                 pass
@@ -205,10 +219,10 @@ class DataToolsViewTests(unittest.TestCase):
 
         self.assertIsInstance(view, ft.Container)
         self.assertIsInstance(view.content, ft.Column)
-        buttons = view.content.controls[1].controls
+        buttons = view.content.controls[0].controls
         self.assertEqual(
             [button.content for button in buttons],
-            ["Selecionar imagem", "Usar câmara"],
+            ["Selecionar imagem"],
         )
 
     def test_csv_view_has_file_picker_and_import_export_actions(self) -> None:
@@ -225,6 +239,7 @@ class DataToolsViewTests(unittest.TestCase):
                 "error": "#B42318",
                 "text": "#252A2E",
                 "divider": "#DDE2E5",
+                "primary": "#536B7B",
             },
             lambda content, **kwargs: ft.Container(content=content, **kwargs),
         )
@@ -245,6 +260,136 @@ class DataToolsViewTests(unittest.TestCase):
         ):
             self.assertTrue(inspect.iscoroutinefunction(button.on_click))
         self.assertEqual(export_row.controls[2].content, "Exportar CSV")
+
+    def test_class_csv_buttons_select_and_import_file(self) -> None:
+        class PageStub:
+            def run_task(self, *_args, **_kwargs) -> None:
+                pass
+
+            def update(self) -> None:
+                pass
+
+        class FilePickerStub:
+            async def pick_files(self, **kwargs):
+                if "turmas" in kwargs["dialog_title"]:
+                    name = "turmas.csv"
+                    content = b"ano_escolar;letra\n8;B"
+                else:
+                    name = "alunos_2026.csv"
+                    content = (
+                        b"numeroprocesso,nome,datanasc,sexo,ano_escolar,letra\n"
+                        b"112,Beatriz,2012-04-03,F,7,A"
+                    )
+                selected_file = ft.FilePickerFile(
+                    id=0,
+                    name=name,
+                    size=len(content),
+                )
+                selected_file.bytes = content
+                return [selected_file]
+
+        controller = FakeAlunosTurmasController()
+        view = build_csv_tools_view(
+            PageStub(),
+            controller,
+            FilePickerStub(),
+            {
+                "muted": "#727B82",
+                "error": "#B42318",
+                "text": "#252A2E",
+                "divider": "#DDE2E5",
+                "primary": "#536B7B",
+            },
+            lambda content, **kwargs: ft.Container(content=content, **kwargs),
+        )
+        class_controls = view.controls[0].content.controls
+        class_row_index = next(
+            index
+            for index, control in enumerate(class_controls)
+            if isinstance(control, ft.Row)
+            and any(
+                getattr(item, "content", None) == "Importar turmas"
+                for item in control.controls
+            )
+        )
+        class_row = class_controls[class_row_index]
+        class_file_slot = class_row.controls[0]
+        class_import_status = class_controls[class_row_index + 1]
+        browse_button = class_file_slot.controls[0]
+        self.assertIsInstance(browse_button, ft.OutlinedButton)
+
+        asyncio.run(browse_button.on_click(None))
+        chip = class_file_slot.controls[0]
+        self.assertIsInstance(chip, ft.OutlinedButton)
+        self.assertEqual(chip.disabled, browse_button.disabled)
+        self.assertEqual(chip.height, browse_button.height)
+        self.assertEqual(chip.style, browse_button.style)
+        self.assertEqual(
+            chip.content.controls[0].value,
+            "turmas.csv",
+        )
+        self.assertEqual(chip.width, max(96, len("turmas.csv") * 8 + 58))
+        class_chip_width = chip.width
+        self.assertTrue(chip.content.controls[0].no_wrap)
+        separator = chip.content.controls[1]
+        self.assertIsInstance(separator, ft.Container)
+        self.assertEqual(separator.width, 1)
+        self.assertIsInstance(chip.content.controls[2], ft.Icon)
+
+        chip.on_click(None)
+        self.assertIsInstance(class_file_slot.controls[0], ft.OutlinedButton)
+        self.assertEqual(class_import_status.value, "")
+
+        asyncio.run(class_row.controls[1].on_click(None))
+        self.assertEqual(
+            class_import_status.value,
+            "Selecione primeiro um ficheiro CSV.",
+        )
+
+        student_controls = view.controls[0].content.controls
+        student_row_index = next(
+            index
+            for index, control in enumerate(student_controls)
+            if isinstance(control, ft.Row)
+            and any(
+                getattr(item, "content", None) == "Importar alunos"
+                for item in control.controls
+            )
+        )
+        student_row = student_controls[student_row_index]
+        student_file_slot = student_row.controls[0]
+        student_import_status = student_controls[student_row_index + 1]
+
+        asyncio.run(student_file_slot.controls[0].on_click(None))
+        student_chip = student_file_slot.controls[0]
+        self.assertIsInstance(student_chip, ft.OutlinedButton)
+        self.assertEqual(
+            student_chip.content.controls[0].value,
+            "alunos_2026.csv",
+        )
+        self.assertGreater(student_chip.width, class_chip_width)
+        asyncio.run(student_row.controls[1].on_click(None))
+
+        self.assertEqual(controller.students[-1].nome, "Beatriz")
+        self.assertIn("1 importados", student_import_status.value)
+        self.assertIsInstance(student_file_slot.controls[0], ft.OutlinedButton)
+
+        asyncio.run(class_file_slot.controls[0].on_click(None))
+        self.assertIsInstance(class_file_slot.controls[0], ft.OutlinedButton)
+
+        asyncio.run(class_row.controls[1].on_click(None))
+
+        self.assertEqual(controller.classes[-1].designacao, "8.º B")
+        self.assertIn("1 importados", class_import_status.value)
+        self.assertIsInstance(class_file_slot.controls[0], ft.OutlinedButton)
+
+        asyncio.run(class_row.controls[1].on_click(None))
+
+        self.assertEqual(len(controller.classes), 2)
+        self.assertEqual(
+            class_import_status.value,
+            "Selecione primeiro um ficheiro CSV.",
+        )
 
 
 if __name__ == "__main__":

@@ -19,8 +19,8 @@ from Controllers.csv_tools_controller import (
 from Controllers.qr_reader_controller import (
     QRReaderError,
     decode_qr_image,
-    scan_qr_with_camera,
 )
+from View.feedback import show_temporary_feedback
 
 
 logger = logging.getLogger(__name__)
@@ -75,8 +75,12 @@ def build_qr_reader_view(
     )
 
     def set_status(message: str, is_error: bool = False) -> None:
-        status_text.value = message
-        status_text.color = palette["error"] if is_error else palette["muted"]
+        show_temporary_feedback(
+            page,
+            status_text,
+            message,
+            color=palette["error"] if is_error else palette["muted"],
+        )
         page.update()
 
     def open_decoded_site(value: str) -> None:
@@ -111,7 +115,11 @@ def build_qr_reader_view(
             set_status("Não foi possível ler a imagem selecionada.", True)
             return
 
-        selected_file_text.value = selected_file.path or selected_file.name
+        show_temporary_feedback(
+            page,
+            selected_file_text,
+            selected_file.path or selected_file.name,
+        )
         image_preview.src = image_bytes
         image_preview.visible = True
         try:
@@ -148,6 +156,7 @@ def build_qr_reader_view(
 
         page.run_thread(scan)
 
+
     image_button = ft.FilledButton(
         content="Selecionar imagem",
         on_click=choose_image,
@@ -176,6 +185,7 @@ def build_qr_reader_view(
                     color=palette["muted"],
                 ),
                 ft.Row(action_controls, wrap=True),
+
                 selected_file_text,
                 status_text,
                 ft.Container(
@@ -200,21 +210,13 @@ def build_csv_tools_view(
     panel_builder: Callable[..., ft.Container],
     read_only: bool = False,
 ) -> ft.Control:
-    import_status = ft.Text("", size=13, color=palette["muted"])
+    import_notice = ft.Text("", size=13, color=palette["muted"])
+    class_import_status = ft.Text("", size=13, color=palette["muted"])
+    student_import_status = ft.Text("", size=13, color=palette["muted"])
     export_status = ft.Text("", size=13, color=palette["muted"])
     selected_import_files: dict[str, ft.FilePickerFile] = {}
-    class_file_path = ft.TextField(
-        hint_text="Ficheiro CSV de turmas",
-        read_only=True,
-        width=520,
-        height=48,
-    )
-    student_file_path = ft.TextField(
-        hint_text="Ficheiro CSV de alunos",
-        read_only=True,
-        width=520,
-        height=48,
-    )
+    import_file_slots: dict[str, ft.Row] = {}
+    import_browse_buttons: dict[str, ft.OutlinedButton] = {}
     export_directory: str | None = None
     export_file_path = ft.TextField(
         label="Destino do ficheiro CSV",
@@ -223,17 +225,78 @@ def build_csv_tools_view(
         height=48,
     )
 
-    def set_import_status(message: str, is_error: bool = False) -> None:
-        import_status.value = message
-        import_status.color = palette["error"] if is_error else palette["muted"]
+    def set_import_status(
+        kind: str,
+        message: str,
+        is_error: bool = False,
+    ) -> None:
+        status = (
+            class_import_status
+            if kind == "classes"
+            else student_import_status
+        )
+        show_temporary_feedback(
+            page,
+            status,
+            message,
+            color=palette["error"] if is_error else palette["muted"],
+        )
         page.update()
+
+    def reset_import_file(kind: str) -> None:
+        selected_import_files.pop(kind, None)
+        file_slot = import_file_slots.get(kind)
+        browse_button = import_browse_buttons.get(kind)
+        if file_slot is not None and browse_button is not None:
+            file_slot.controls = [browse_button]
+
+    def clear_import_file(kind: str) -> None:
+        reset_import_file(kind)
+        status = class_import_status if kind == "classes" else student_import_status
+        status.value = ""
+        status.visible = False
+        page.update()
+
+    def build_selected_file_chip(kind: str, file_name: str) -> ft.OutlinedButton:
+        return ft.OutlinedButton(
+            content=ft.Row(
+                [
+                    ft.Text(
+                        file_name,
+                        size=14,
+                        color=palette["primary"],
+                        no_wrap=True,
+                    ),
+                    ft.Container(
+                        width=1,
+                        height=20,
+                        bgcolor=palette["divider"],
+                    ),
+                    ft.Icon(
+                        ft.Icons.CLOSE,
+                        size=14,
+                        color=palette["muted"],
+                    ),
+                ],
+                spacing=4,
+                tight=True,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            width=max(96, len(file_name) * 8 + 58),
+            disabled=read_only,
+            on_click=lambda _event: clear_import_file(kind),
+        )
 
     def set_export_status(message: str, is_error: bool = False) -> None:
-        export_status.value = message
-        export_status.color = palette["error"] if is_error else palette["muted"]
+        show_temporary_feedback(
+            page,
+            export_status,
+            message,
+            color=palette["error"] if is_error else palette["muted"],
+        )
         page.update()
 
-    def display_import_summary(summary: ImportSummary) -> None:
+    def display_import_summary(kind: str, summary: ImportSummary) -> None:
         message = (
             f"{summary.imported} importados; "
             f"{summary.duplicates} duplicados ignorados; "
@@ -245,7 +308,11 @@ def build_csv_tools_view(
             message += "\n" + "\n".join(summary.errors[:5])
             if len(summary.errors) > 5:
                 message += f"\n… e mais {len(summary.errors) - 5} erros."
-        set_import_status(message, bool(summary.errors) or summary.interrupted)
+        set_import_status(
+            kind,
+            message,
+            bool(summary.errors) or summary.interrupted,
+        )
 
     async def choose_import_file(kind: str, title: str) -> None:
         files = await file_picker.pick_files(
@@ -258,9 +325,10 @@ def build_csv_tools_view(
         if not files:
             return
         selected_import_files[kind] = files[0]
-        field = class_file_path if kind == "classes" else student_file_path
-        field.value = files[0].path or files[0].name
-        set_import_status("")
+        import_file_slots[kind].controls = [
+            build_selected_file_chip(kind, files[0].name)
+        ]
+        set_import_status(kind, "")
 
     async def import_selected_file(
         kind: str,
@@ -268,32 +336,69 @@ def build_csv_tools_view(
     ) -> None:
         selected_file = selected_import_files.get(kind)
         if selected_file is None:
-            set_import_status("Selecione primeiro um ficheiro CSV.", True)
-            return
-        content = selected_file.bytes
-        if content is None and selected_file.path:
-            try:
-                content = Path(selected_file.path).read_bytes()
-            except OSError:
-                logger.exception("Could not read selected CSV file")
-                set_import_status("Não foi possível ler o ficheiro selecionado.", True)
-                return
-        if content is None:
-            set_import_status("Não foi possível ler o ficheiro selecionado.", True)
+            set_import_status(kind, "Selecione primeiro um ficheiro CSV.", True)
             return
         try:
-            summary = importer(content, controller)
-        except ConnectionError:
-            logger.exception("Could not import CSV data")
-            set_import_status(
-                "Não foi possível importar. Verifique a ligação à base de dados.",
-                True,
-            )
-            return
-        except ValueError as exc:
-            set_import_status(str(exc), True)
-            return
-        display_import_summary(summary)
+            content = selected_file.bytes
+            if content is None and selected_file.path:
+                try:
+                    content = Path(selected_file.path).read_bytes()
+                except OSError:
+                    logger.exception("Could not read selected CSV file")
+                    set_import_status(
+                        kind,
+                        "Não foi possível ler o ficheiro selecionado.",
+                        True,
+                    )
+                    return
+            if content is None:
+                set_import_status(
+                    kind,
+                    "Não foi possível ler o ficheiro selecionado.",
+                    True,
+                )
+                return
+            try:
+                summary = importer(content, controller)
+            except ConnectionError:
+                logger.exception("Could not import CSV data")
+                set_import_status(
+                    kind,
+                    "Não foi possível importar. Verifique a ligação à base de dados.",
+                    True,
+                )
+                return
+            except ValueError as exc:
+                set_import_status(kind, str(exc), True)
+                return
+            display_import_summary(kind, summary)
+        finally:
+            reset_import_file(kind)
+            page.update()
+
+    async def choose_classes_file(_event: object) -> None:
+        await choose_import_file("classes", "Selecionar CSV de turmas")
+
+    async def import_classes_file(_event: object) -> None:
+        await import_selected_file("classes", import_classes_csv)
+
+    async def choose_students_file(_event: object) -> None:
+        await choose_import_file("students", "Selecionar CSV de alunos")
+
+    async def import_students_file(_event: object) -> None:
+        await import_selected_file("students", import_students_csv)
+
+    async def choose_classes_file(_event: object) -> None:
+        await choose_import_file("classes", "Selecionar CSV de turmas")
+
+    async def import_classes_file(_event: object) -> None:
+        await import_selected_file("classes", import_classes_csv)
+
+    async def choose_students_file(_event: object) -> None:
+        await choose_import_file("students", "Selecionar CSV de alunos")
+
+    async def import_students_file(_event: object) -> None:
+        await import_selected_file("students", import_students_csv)
 
     async def choose_classes_file(_event: object) -> None:
         await choose_import_file("classes", "Selecionar CSV de turmas")
@@ -373,11 +478,36 @@ def build_csv_tools_view(
         set_export_status(f"Ficheiro exportado: {target_path}")
 
     if read_only:
-        import_status.value = (
+        import_notice.value = (
             "A importação e exportação estão disponíveis após iniciar sessão "
             "com uma base de dados ligada."
         )
-        import_status.color = palette["error"]
+        import_notice.color = palette["error"]
+
+    class_browse_button = ft.OutlinedButton(
+        content="Procurar...",
+        disabled=read_only,
+        on_click=choose_classes_file,
+    )
+    student_browse_button = ft.OutlinedButton(
+        content="Procurar...",
+        disabled=read_only,
+        on_click=choose_students_file,
+    )
+    import_browse_buttons.update(
+        {
+            "classes": class_browse_button,
+            "students": student_browse_button,
+        }
+    )
+    class_file_slot = ft.Row([class_browse_button], tight=True)
+    student_file_slot = ft.Row([student_browse_button], tight=True)
+    import_file_slots.update(
+        {
+            "classes": class_file_slot,
+            "students": student_file_slot,
+        }
+    )
 
     import_panel = panel_builder(
         ft.Column(
@@ -388,22 +518,12 @@ def build_csv_tools_view(
                     weight=ft.FontWeight.W_600,
                     color=palette["text"],
                 ),
-                ft.Text(
-                    "Separador ';' ou ','. Importe primeiro as turmas e só depois "
-                    "os alunos.",
-                    size=12,
-                    color=palette["muted"],
-                ),
+                import_notice,
                 ft.Text(
                     "Turmas",
                     size=14,
                     weight=ft.FontWeight.W_600,
                     color=palette["text"],
-                ),
-                ft.Text(
-                    "Colunas: ano_escolar; letra",
-                    size=12,
-                    color=palette["muted"],
                 ),
                 ft.Row(
                     [
@@ -421,18 +541,13 @@ def build_csv_tools_view(
                     ],
                     wrap=True,
                 ),
+                class_import_status,
                 ft.Divider(color=palette["divider"]),
                 ft.Text(
                     "Alunos",
                     size=14,
                     weight=ft.FontWeight.W_600,
                     color=palette["text"],
-                ),
-                ft.Text(
-                    "Colunas: numeroprocesso; nome; datanasc; sexo; "
-                    "ano_escolar; letra. Data em AAAA-MM-DD; turma opcional.",
-                    size=12,
-                    color=palette["muted"],
                 ),
                 ft.Row(
                     [
@@ -450,7 +565,7 @@ def build_csv_tools_view(
                     ],
                     wrap=True,
                 ),
-                import_status,
+                student_import_status,
             ],
             spacing=12,
             tight=True,
@@ -477,12 +592,6 @@ def build_csv_tools_view(
                     size=17,
                     weight=ft.FontWeight.W_600,
                     color=palette["text"],
-                ),
-                ft.Text(
-                    "O ficheiro é guardado em UTF-8 com separador ';' "
-                    "(abre bem no Excel).",
-                    size=12,
-                    color=palette["muted"],
                 ),
                 export_kind,
                 ft.Row(

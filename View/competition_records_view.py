@@ -21,6 +21,7 @@ from Model.competition_records import (
     parse_tempo_chegada,
 )
 from View.date_time_fields import add_date_time_pickers
+from View.feedback import dismiss_temporary_dialog, show_temporary_feedback
 from View.formatters import format_numeroprocesso, format_tempo_chegada
 
 
@@ -277,8 +278,11 @@ def _build_management_table(
             logger.exception("Could not load %s", entity)
             records = []
             selected_ids.clear()
-            message.value = f"Não foi possível carregar {entity}."
-            message.visible = True
+            show_temporary_feedback(
+                page,
+                message,
+                f"Não foi possível carregar {entity}.",
+            )
             empty.visible = False
         table.rows = build_rows()
         if update_page:
@@ -335,13 +339,15 @@ def _build_management_table(
                 delete_records(sorted(selected_ids))
             except ConnectionError:
                 logger.exception("Could not delete selected %s", entity)
-                feedback.value = f"Não foi possível eliminar {entity}."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    f"Não foi possível eliminar {entity}.",
+                )
                 page.update()
                 return
             except ValueError as exc:
-                feedback.value = str(exc)
-                feedback.visible = True
+                show_temporary_feedback(page, feedback, str(exc))
                 page.update()
                 return
 
@@ -573,17 +579,21 @@ def build_inscricoes_view(
                 else:
                     controller.atualizar_inscricao(inscricao.id, *values)
             except ValueError as exc:
-                feedback.value = str(exc) or "Selecione uma prova e um aluno."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    str(exc) or "Selecione uma prova e um aluno.",
+                )
                 page.update()
                 return
             except ConnectionError:
                 logger.exception("Could not save registration")
-                feedback.value = (
+                show_temporary_feedback(
+                    page,
+                    feedback,
                     "Não foi possível guardar a inscrição. "
-                    "Verifique se já existe para esta prova."
+                    "Verifique se já existe para esta prova.",
                 )
-                feedback.visible = True
                 page.update()
                 return
             page.pop_dialog()
@@ -791,17 +801,17 @@ def build_dorsais_view(
                         delivered_at,
                     )
             except ValueError as exc:
-                feedback.value = str(exc)
-                feedback.visible = True
+                show_temporary_feedback(page, feedback, str(exc))
                 page.update()
                 return
             except ConnectionError:
                 logger.exception("Could not save bib")
-                feedback.value = (
+                show_temporary_feedback(
+                    page,
+                    feedback,
                     "Não foi possível guardar o dorsal. "
-                    "Confirme se a inscrição já tem dorsal."
+                    "Confirme se a inscrição já tem dorsal.",
                 )
-                feedback.visible = True
                 page.update()
                 return
             page.pop_dialog()
@@ -966,17 +976,17 @@ def build_chegadas_view(
                         correction_id,
                     )
             except ValueError as exc:
-                feedback.value = str(exc)
-                feedback.visible = True
+                show_temporary_feedback(page, feedback, str(exc))
                 page.update()
                 return
             except ConnectionError:
                 logger.exception("Could not save arrival")
-                feedback.value = (
+                show_temporary_feedback(
+                    page,
+                    feedback,
                     "Não foi possível guardar a chegada. "
-                    "Confirme se a inscrição já tem uma chegada."
+                    "Confirme se a inscrição já tem uma chegada.",
                 )
-                feedback.visible = True
                 page.update()
                 return
             page.pop_dialog()
@@ -1201,17 +1211,17 @@ def build_classificacoes_view(
                         position,
                     )
             except ValueError as exc:
-                feedback.value = str(exc)
-                feedback.visible = True
+                show_temporary_feedback(page, feedback, str(exc))
                 page.update()
                 return
             except ConnectionError:
                 logger.exception("Could not save classification")
-                feedback.value = (
+                show_temporary_feedback(
+                    page,
+                    feedback,
                     "Não foi possível guardar a classificação. "
-                    "Confirme a prova, inscrição e posição."
+                    "Confirme a prova, inscrição e posição.",
                 )
-                feedback.visible = True
                 page.update()
                 return
             page.pop_dialog()
@@ -1283,24 +1293,17 @@ def build_categories_view(
                 _show_options_error(page, "provas")
                 return
 
-            prova_field: ft.Control
-            if escalao is None:
-                prova_field = _dropdown(
-                    "Prova",
-                    [
-                        (
-                            str(prova.idprova),
-                            f"{prova.escola} · {prova.data.strftime('%d/%m/%Y')}",
-                        )
-                        for prova in provas
-                    ],
-                )
-            else:
-                prova_field = ft.Text(
-                    f"Prova: {escalao.prova_label}",
-                    size=14,
-                    color=palette["muted"],
-                )
+            prova_field = _dropdown(
+                "Prova",
+                [
+                    (
+                        str(prova.idprova),
+                        f"{prova.escola} · {prova.data.strftime('%d/%m/%Y')}",
+                    )
+                    for prova in provas
+                ],
+                str(escalao.prova_id) if escalao else None,
+            )
             name_field = ft.TextField(
                 label="Designação",
                 value=escalao.designacao if escalao else "",
@@ -1367,11 +1370,7 @@ def build_categories_view(
                 feedback.value = ""
                 feedback.visible = False
                 try:
-                    prova_id = (
-                        escalao.prova_id
-                        if escalao
-                        else _parse_int(prova_field.value, "uma prova")
-                    )
+                    prova_id = _parse_int(prova_field.value, "uma prova")
                     min_year = _parse_int(
                         min_year_field.value,
                         "um ano de nascimento mínimo",
@@ -1393,17 +1392,17 @@ def build_categories_view(
                     else:
                         controller.atualizar_escalao(escalao.id, *values)
                 except ValueError as exc:
-                    feedback.value = str(exc)
-                    feedback.visible = True
+                    show_temporary_feedback(page, feedback, str(exc))
                     page.update()
                     return
                 except ConnectionError:
                     logger.exception("Could not save age group")
-                    feedback.value = (
+                    show_temporary_feedback(
+                        page,
+                        feedback,
                         "Não foi possível guardar o escalão. "
-                        "Confirme se já existe nessa prova."
+                        "Confirme se já existe nessa prova.",
                     )
-                    feedback.visible = True
                     page.update()
                     return
                 page.pop_dialog()
@@ -1539,17 +1538,17 @@ def build_categories_view(
                             number,
                         )
                 except ValueError as exc:
-                    feedback.value = str(exc)
-                    feedback.visible = True
+                    show_temporary_feedback(page, feedback, str(exc))
                     page.update()
                     return
                 except ConnectionError:
                     logger.exception("Could not save qualification rule")
-                    feedback.value = (
+                    show_temporary_feedback(
+                        page,
+                        feedback,
                         "Não foi possível guardar a regra. "
-                        "Confirme as provas e o escalão selecionados."
+                        "Confirme as provas e o escalão selecionados.",
                     )
-                    feedback.visible = True
                     page.update()
                     return
                 page.pop_dialog()
@@ -1621,14 +1620,16 @@ def build_categories_view(
                         state_field.value or "",
                     )
                 except ValueError as exc:
-                    feedback.value = str(exc)
-                    feedback.visible = True
+                    show_temporary_feedback(page, feedback, str(exc))
                     page.update()
                     return
                 except ConnectionError:
                     logger.exception("Could not update qualifier status")
-                    feedback.value = "Não foi possível atualizar o estado."
-                    feedback.visible = True
+                    show_temporary_feedback(
+                        page,
+                        feedback,
+                        "Não foi possível atualizar o estado.",
+                    )
                     page.update()
                     return
                 page.pop_dialog()
@@ -1684,36 +1685,36 @@ def build_categories_view(
                         )
                         total = controller.gerar_apuramentos(destination_id)
                     except ValueError as exc:
-                        feedback.value = str(exc)
-                        feedback.visible = True
+                        show_temporary_feedback(page, feedback, str(exc))
                         page.update()
                         return
                     except ConnectionError:
                         logger.exception("Could not generate qualifiers")
-                        feedback.value = (
-                            "Não foi possível gerar os apuramentos."
+                        show_temporary_feedback(
+                            page,
+                            feedback,
+                            "Não foi possível gerar os apuramentos.",
                         )
-                        feedback.visible = True
                         page.update()
                         return
 
                     page.pop_dialog()
                     refresh()
-                    page.show_dialog(
-                        ft.AlertDialog(
-                            modal=True,
-                            title="Apuramentos atualizados",
-                            content=ft.Text(
-                                f"{total} participante(s) elegível(is) na prova de destino."
-                            ),
-                            actions=[
-                                ft.TextButton(
-                                    content="Fechar",
-                                    on_click=lambda _event: page.pop_dialog(),
-                                )
-                            ],
-                        )
+                    success_dialog = ft.AlertDialog(
+                        modal=True,
+                        title="Apuramentos atualizados",
+                        content=ft.Text(
+                            f"{total} participante(s) elegível(is) na prova de destino."
+                        ),
+                        actions=[
+                            ft.TextButton(
+                                content="Fechar",
+                                on_click=lambda _event: page.pop_dialog(),
+                            )
+                        ],
                     )
+                    page.show_dialog(success_dialog)
+                    dismiss_temporary_dialog(page, success_dialog)
 
                 page.show_dialog(
                     ft.AlertDialog(

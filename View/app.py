@@ -36,6 +36,8 @@ from View.competition_records_view import (
 )
 from View.date_time_fields import add_date_time_pickers
 from View.data_tools_view import build_csv_tools_view, build_qr_reader_view
+from View.feedback import dismiss_temporary_dialog, show_temporary_feedback
+
 from View.image_crop import create_square_crop_canvas, minimum_crop_zoom
 
 
@@ -717,9 +719,12 @@ def create_app(page: ft.Page) -> None:
             current_page = 0
             event_table.rows = []
             empty_provas_text.visible = False
-            result_message.value = f"Erro ao carregar provas: {exc}"
-            result_message.color = "#B42318"
-            result_message.visible = True
+            show_temporary_feedback(
+                page,
+                result_message,
+                f"Erro ao carregar provas: {exc}",
+                color="#B42318",
+            )
         else:
             set_table_layout(compact_table)
             empty_provas_text.visible = not provas_cache
@@ -795,8 +800,11 @@ def create_app(page: ft.Page) -> None:
             try:
                 parsed_date = date.fromisoformat(data_prova.value or "")
             except ValueError:
-                feedback.value = "Introduza uma data válida no formato AAAA-MM-DD."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Introduza uma data válida no formato AAAA-MM-DD.",
+                )
                 page.update()
                 return
 
@@ -804,8 +812,11 @@ def create_app(page: ft.Page) -> None:
                 parsed_start = time.fromisoformat(hora_inicio.value or "")
                 parsed_end = time.fromisoformat(hora_final.value or "")
             except ValueError:
-                feedback.value = "Introduza horas válidas no formato HH:MM."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Introduza horas válidas no formato HH:MM.",
+                )
                 page.update()
                 return
 
@@ -823,16 +834,21 @@ def create_app(page: ft.Page) -> None:
                 else:
                     current_provas_controller().atualizar_prova(prova.idprova, *values)
             except ValueError as exc:
-                feedback.value = str(exc) or "Verifique os dados introduzidos."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    str(exc) or "Verifique os dados introduzidos.",
+                )
                 page.update()
                 return
             except ConnectionError:
                 logger.exception("Could not save event")
-                feedback.value = (
-                    "Não foi possível guardar a prova. Verifique os dados e tente novamente."
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi possível guardar a prova. "
+                    "Verifique os dados e tente novamente.",
                 )
-                feedback.visible = True
                 page.update()
                 return
 
@@ -886,8 +902,11 @@ def create_app(page: ft.Page) -> None:
                 current_provas_controller().eliminar_provas(sorted(selected_prova_ids))
             except ConnectionError:
                 logger.exception("Could not delete selected events")
-                feedback.value = "Não foi possível eliminar as provas selecionadas."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi possível eliminar as provas selecionadas.",
+                )
                 page.update()
                 return
 
@@ -1080,13 +1099,17 @@ def create_app(page: ft.Page) -> None:
         profile_settings_avatar.foreground_image_src = photo_source
 
     def set_profile_feedback(message: str, is_error: bool = False) -> None:
-        profile_edit_feedback.value = message
-        profile_edit_feedback.color = (
+        color = (
             (DARK_PALETTE if dark_theme_active else LIGHT_PALETTE)["error"]
             if is_error
             else (DARK_PALETTE if dark_theme_active else LIGHT_PALETTE)["muted"]
         )
-        profile_edit_feedback.visible = bool(message)
+        show_temporary_feedback(
+            page,
+            profile_edit_feedback,
+            message,
+            color=color,
+        )
 
     def dismiss_profile_menu(_event: object | None = None) -> None:
         nonlocal profile_menu_open
@@ -1165,22 +1188,27 @@ def create_app(page: ft.Page) -> None:
             try:
                 updated = auth_controller.update_profile_name(user_id, name)
             except ValueError as exc:
-                feedback.value = str(exc)
-                feedback.visible = True
+                show_temporary_feedback(page, feedback, str(exc))
                 save_button.disabled = False
                 page.update()
                 return
             except ConnectionError:
                 logger.exception("Could not update the account name")
-                feedback.value = "Não foi possível guardar o nome."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi possível guardar o nome.",
+                )
                 save_button.disabled = False
                 page.update()
                 return
 
             if not updated:
-                feedback.value = "Não foi encontrada uma conta ativa para alterar."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi encontrada uma conta ativa para alterar.",
+                )
                 save_button.disabled = False
                 page.update()
                 return
@@ -1261,6 +1289,11 @@ def create_app(page: ft.Page) -> None:
         crop_canvas = create_square_crop_canvas(source_image)
         crop_canvas_size = crop_canvas.width
         minimum_zoom = minimum_crop_zoom(source_image.size)
+
+=======
+        minimum_zoom = minimum_crop_zoom(source_image.size)
+>>>>>>> Stashed changes
+>>>>>>> 485d34971cc9224dcbdb2c5ec73a08faf8a63ea2
         preview_size = 220
         output_size = 512
         crop_center_x = crop_canvas_size / 2
@@ -1273,6 +1306,11 @@ def create_app(page: ft.Page) -> None:
         )
         zoom_slider = ft.Slider(
             min=minimum_zoom,
+
+=======
+            min=minimum_zoom,
+>>>>>>> Stashed changes
+>>>>>>> 485d34971cc9224dcbdb2c5ec73a08faf8a63ea2
             max=3,
             value=minimum_zoom,
             divisions=20,
@@ -1324,8 +1362,7 @@ def create_app(page: ft.Page) -> None:
             refresh_crop_preview()
 
         def set_crop_error(message: str) -> None:
-            crop_error.value = message
-            crop_error.visible = True
+            show_temporary_feedback(page, crop_error, message)
             page.update()
 
         def save_cropped_photo(_event: object) -> None:
@@ -1463,8 +1500,11 @@ def create_app(page: ft.Page) -> None:
                 nonlocal current_user_email
                 new_email = (new_email_field.value or "").strip()
                 if not is_valid_email(new_email):
-                    new_feedback.value = "Introduza um email válido."
-                    new_feedback.visible = True
+                    show_temporary_feedback(
+                        page,
+                        new_feedback,
+                        "Introduza um email válido.",
+                    )
                     page.update()
                     return
 
@@ -1477,47 +1517,48 @@ def create_app(page: ft.Page) -> None:
                         new_email,
                     )
                 except ValueError as exc:
-                    new_feedback.value = str(exc)
-                    new_feedback.visible = True
+                    show_temporary_feedback(page, new_feedback, str(exc))
                     save_button.disabled = False
                     page.update()
                     return
                 except ConnectionError:
                     logger.exception("Could not change the account email")
-                    new_feedback.value = (
+                    show_temporary_feedback(
+                        page,
+                        new_feedback,
                         "Não foi possível alterar o email. "
-                        "Verifique a ligação à base de dados."
+                        "Verifique a ligação à base de dados.",
                     )
-                    new_feedback.visible = True
                     save_button.disabled = False
                     page.update()
                     return
 
                 if not changed:
-                    new_feedback.value = (
-                        "Não foi encontrada uma conta ativa para alterar."
+                    show_temporary_feedback(
+                        page,
+                        new_feedback,
+                        "Não foi encontrada uma conta ativa para alterar.",
                     )
-                    new_feedback.visible = True
                     save_button.disabled = False
                     page.update()
                     return
 
                 current_user_email = new_email
                 page.pop_dialog()
-                page.show_dialog(
-                    ft.AlertDialog(
-                        modal=True,
-                        title="Email alterado",
-                        content=ft.Text("O email foi atualizado."),
-                        actions=[
-                            ft.FilledButton(
-                                content="Fechar",
-                                on_click=lambda _event: page.pop_dialog(),
-                            ),
-                        ],
-                        actions_alignment=ft.MainAxisAlignment.END,
-                    )
+                success_dialog = ft.AlertDialog(
+                    modal=True,
+                    title="Email alterado",
+                    content=ft.Text("O email foi atualizado."),
+                    actions=[
+                        ft.FilledButton(
+                            content="Fechar",
+                            on_click=lambda _event: page.pop_dialog(),
+                        ),
+                    ],
+                    actions_alignment=ft.MainAxisAlignment.END,
                 )
+                page.show_dialog(success_dialog)
+                dismiss_temporary_dialog(page, success_dialog)
 
             save_button.on_click = save_new_email
             new_email_field.on_submit = save_new_email
@@ -1545,8 +1586,11 @@ def create_app(page: ft.Page) -> None:
         def verify_current_password(_event: object) -> None:
             current_password = current_password_field.value or ""
             if not current_password:
-                feedback.value = "Introduza a palavra-passe atual."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Introduza a palavra-passe atual.",
+                )
                 page.update()
                 return
 
@@ -1554,14 +1598,20 @@ def create_app(page: ft.Page) -> None:
                 user = auth_controller.authenticate(email, current_password)
             except ConnectionError:
                 logger.exception("Could not verify the current account password")
-                feedback.value = "Não foi possível verificar a palavra-passe atual."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi possível verificar a palavra-passe atual.",
+                )
                 page.update()
                 return
 
             if user is None:
-                feedback.value = "A palavra-passe atual está incorreta."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "A palavra-passe atual está incorreta.",
+                )
                 page.update()
                 return
 
@@ -1619,17 +1669,19 @@ def create_app(page: ft.Page) -> None:
             def save_new_password(_event: object) -> None:
                 new_password = new_password_field.value or ""
                 if len(new_password) < MIN_PASSWORD_LENGTH:
-                    new_feedback.value = (
-                        "A palavra-passe deve ter pelo menos 8 caracteres."
+                    show_temporary_feedback(
+                        page,
+                        new_feedback,
+                        "A palavra-passe deve ter pelo menos 8 caracteres.",
                     )
-                    new_feedback.visible = True
                     page.update()
                     return
                 if len(new_password) > MAX_PASSWORD_LENGTH:
-                    new_feedback.value = (
-                        "A palavra-passe excede o limite de 128 caracteres."
+                    show_temporary_feedback(
+                        page,
+                        new_feedback,
+                        "A palavra-passe excede o limite de 128 caracteres.",
                     )
-                    new_feedback.visible = True
                     page.update()
                     return
 
@@ -1643,39 +1695,41 @@ def create_app(page: ft.Page) -> None:
                     )
                 except ConnectionError:
                     logger.exception("Could not change the account password")
-                    new_feedback.value = (
+                    show_temporary_feedback(
+                        page,
+                        new_feedback,
                         "Não foi possível alterar a palavra-passe. "
-                        "Verifique a ligação à base de dados."
+                        "Verifique a ligação à base de dados.",
                     )
-                    new_feedback.visible = True
                     save_button.disabled = False
                     page.update()
                     return
 
                 if not changed:
-                    new_feedback.value = (
-                        "A palavra-passe atual já não é válida. Tente novamente."
+                    show_temporary_feedback(
+                        page,
+                        new_feedback,
+                        "A palavra-passe atual já não é válida. Tente novamente.",
                     )
-                    new_feedback.visible = True
                     save_button.disabled = False
                     page.update()
                     return
 
                 page.pop_dialog()
-                page.show_dialog(
-                    ft.AlertDialog(
-                        modal=True,
-                        title="Palavra-passe alterada",
-                        content=ft.Text("A palavra-passe foi atualizada."),
-                        actions=[
-                            ft.FilledButton(
-                                content="Fechar",
-                                on_click=lambda _event: page.pop_dialog(),
-                            ),
-                        ],
-                        actions_alignment=ft.MainAxisAlignment.END,
-                    )
+                success_dialog = ft.AlertDialog(
+                    modal=True,
+                    title="Palavra-passe alterada",
+                    content=ft.Text("A palavra-passe foi atualizada."),
+                    actions=[
+                        ft.FilledButton(
+                            content="Fechar",
+                            on_click=lambda _event: page.pop_dialog(),
+                        ),
+                    ],
+                    actions_alignment=ft.MainAxisAlignment.END,
                 )
+                page.show_dialog(success_dialog)
+                dismiss_temporary_dialog(page, success_dialog)
 
             save_button.on_click = save_new_password
             new_password_field.on_submit = save_new_password
@@ -1703,8 +1757,11 @@ def create_app(page: ft.Page) -> None:
         def verify_current_password(_event: object) -> None:
             current_password = current_password_field.value or ""
             if not current_password:
-                feedback.value = "Introduza a palavra-passe atual."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Introduza a palavra-passe atual.",
+                )
                 page.update()
                 return
 
@@ -1712,14 +1769,20 @@ def create_app(page: ft.Page) -> None:
                 user = auth_controller.authenticate(email, current_password)
             except ConnectionError:
                 logger.exception("Could not verify the current account password")
-                feedback.value = "Não foi possível verificar a palavra-passe atual."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi possível verificar a palavra-passe atual.",
+                )
                 page.update()
                 return
 
             if user is None:
-                feedback.value = "A palavra-passe atual está incorreta."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "A palavra-passe atual está incorreta.",
+                )
                 page.update()
                 return
 
@@ -2294,15 +2357,27 @@ def create_app(page: ft.Page) -> None:
             login_feedback.value = ""
 
             if not is_valid_email(email):
-                login_feedback.value = "Introduza um email válido."
+                show_temporary_feedback(
+                    page,
+                    login_feedback,
+                    "Introduza um email válido.",
+                )
                 page.update()
                 return
             if not password:
-                login_feedback.value = "Introduza a palavra-passe."
+                show_temporary_feedback(
+                    page,
+                    login_feedback,
+                    "Introduza a palavra-passe.",
+                )
                 page.update()
                 return
             if len(password) > MAX_PASSWORD_LENGTH:
-                login_feedback.value = "A palavra-passe excede o limite permitido."
+                show_temporary_feedback(
+                    page,
+                    login_feedback,
+                    "A palavra-passe excede o limite permitido.",
+                )
                 page.update()
                 return
 
@@ -2312,14 +2387,22 @@ def create_app(page: ft.Page) -> None:
                 user = auth_controller.authenticate(email, password)
             except ConnectionError:
                 logger.exception("Could not authenticate against MySQL")
-                login_feedback.value = "Não foi possível ligar à base de dados."
+                show_temporary_feedback(
+                    page,
+                    login_feedback,
+                    "Não foi possível ligar à base de dados.",
+                )
                 login_button.disabled = False
                 page.update()
                 return
 
             login_button.disabled = False
             if user is None:
-                login_feedback.value = "Email ou palavra-passe incorretos."
+                show_temporary_feedback(
+                    page,
+                    login_feedback,
+                    "Email ou palavra-passe incorretos.",
+                )
                 page.update()
                 return
 
