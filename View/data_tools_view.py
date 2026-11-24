@@ -284,6 +284,18 @@ def build_csv_tools_view(
             return
         display_import_summary(summary)
 
+    async def choose_classes_file(_event: object) -> None:
+        await choose_import_file("classes", "Selecionar CSV de turmas")
+
+    async def import_classes_file(_event: object) -> None:
+        await import_selected_file("classes", import_classes_csv)
+
+    async def choose_students_file(_event: object) -> None:
+        await choose_import_file("students", "Selecionar CSV de alunos")
+
+    async def import_students_file(_event: object) -> None:
+        await import_selected_file("students", import_students_csv)
+
     async def choose_export_directory(_event: object) -> None:
         nonlocal export_directory
         directory = await file_picker.get_directory_path(
@@ -388,18 +400,12 @@ def build_csv_tools_view(
                         ft.OutlinedButton(
                             content="Procurar...",
                             disabled=read_only,
-                            on_click=lambda _event: choose_import_file(
-                                "classes",
-                                "Selecionar CSV de turmas",
-                            ),
+                            on_click=choose_classes_file,
                         ),
                         ft.FilledButton(
                             content="Importar turmas",
                             disabled=read_only,
-                            on_click=lambda _event: import_selected_file(
-                                "classes",
-                                import_classes_csv,
-                            ),
+                            on_click=import_classes_file,
                         ),
                     ],
                     wrap=True,
@@ -423,18 +429,12 @@ def build_csv_tools_view(
                         ft.OutlinedButton(
                             content="Procurar...",
                             disabled=read_only,
-                            on_click=lambda _event: choose_import_file(
-                                "students",
-                                "Selecionar CSV de alunos",
-                            ),
+                            on_click=choose_students_file,
                         ),
                         ft.FilledButton(
                             content="Importar alunos",
                             disabled=read_only,
-                            on_click=lambda _event: import_selected_file(
-                                "students",
-                                import_students_csv,
-                            ),
+                            on_click=import_students_file,
                         ),
                     ],
                     wrap=True,
