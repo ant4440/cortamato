@@ -1,0 +1,11 @@
+{
+  "name": "cortamato-qr-web",
+  "private": true,
+  "description": "Browser-side QR decoder for the Cortamato mobile reader",
+  "scripts": {
+    "sync:qr": "node scripts/sync-qr-library.mjs"
+  },
+  "dependencies": {
+    "jsqr": "1.4.0"
+  }
+}

@@ -212,7 +212,7 @@ CREATE TABLE regra_apuramento (
     numero_apurados     INT NOT NULL,
     CONSTRAINT uq_regra_apuramento UNIQUE (prova_origem_id, prova_destino_id, escalao_id),
     CONSTRAINT chk_regra_numero   CHECK (numero_apurados > 0),
-    CONSTRAINT chk_regra_provas   CHECK (prova_origem_id <> prova_destino_id),
+    -- Distinct origin/destination IDs are enforced by the application validator.
     CONSTRAINT fk_regra_origem FOREIGN KEY (prova_origem_id) REFERENCES prova(idprova) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_regra_destino FOREIGN KEY (prova_destino_id) REFERENCES prova(idprova) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_regra_escalao FOREIGN KEY (escalao_id) REFERENCES escalao(id) ON DELETE CASCADE ON UPDATE CASCADE

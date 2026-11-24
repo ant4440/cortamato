@@ -1,5 +1,7 @@
+import inspect
 import unittest
 from datetime import date
+from pathlib import Path
 
 import cv2
 import flet as ft
@@ -10,6 +12,7 @@ from Controllers.csv_tools_controller import (
 )
 from Controllers.qr_reader_controller import QRReaderError, decode_qr_image
 from Model.alunos_turmas import Aluno, Turma
+from Model.competition_records import _validar_regra_apuramento
 from View.data_tools_view import (
     build_csv_tools_view,
     build_qr_reader_view,
@@ -104,6 +107,16 @@ class CsvToolsTests(unittest.TestCase):
         self.assertEqual(len(result.errors), 2)
 
 
+class QualificationRuleTests(unittest.TestCase):
+    def test_origin_and_destination_must_be_different(self) -> None:
+        with self.assertRaisesRegex(ValueError, "diferentes"):
+            _validar_regra_apuramento(1, 1, 1, 1)
+
+    def test_boolean_values_are_not_valid_positive_numbers(self) -> None:
+        with self.assertRaisesRegex(ValueError, "inválida"):
+            _validar_regra_apuramento(True, True, 1, 1)
+
+
 class QRUrlTests(unittest.TestCase):
     def test_only_http_and_https_urls_are_accepted(self) -> None:
         self.assertEqual(
@@ -139,8 +152,39 @@ class QRUrlTests(unittest.TestCase):
             "https://qrto.org/z11YoJ",
         )
 
-
 class DataToolsViewTests(unittest.TestCase):
+    def test_mobile_reader_uses_local_qr_decoder_without_backend(self) -> None:
+        project_root = Path(__file__).resolve().parents[1]
+        page = (project_root / "web" / "qr-mobile.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('<script src="vendor/jsQR.js"></script>', page)
+        self.assertIn("decodePixels(image)", page)
+        self.assertNotIn('fetch("./decode"', page)
+
+    def test_qr_reader_view_can_hide_camera_action(self) -> None:
+        class PageStub:
+            def update(self) -> None:
+                pass
+
+            def run_task(self, *args, **kwargs) -> None:
+                pass
+
+            def run_thread(self, *args, **kwargs) -> None:
+                pass
+
+        view = build_qr_reader_view(
+            PageStub(),
+            ft.FilePicker(),
+            {"muted": "#727B82", "error": "#B42318", "text": "#252A2E"},
+            lambda content, **kwargs: ft.Container(content=content, **kwargs),
+            allow_camera=False,
+        )
+
+        buttons = view.content.controls[1].controls
+        self.assertEqual([button.content for button in buttons], ["Selecionar imagem"])
+
     def test_qr_reader_view_has_visible_image_and_camera_actions(self) -> None:
         class PageStub:
             def update(self) -> None:
@@ -186,11 +230,20 @@ class DataToolsViewTests(unittest.TestCase):
         )
 
         self.assertEqual(len(view.controls), 2)
-        class_import_row = view.controls[0].content.controls[4]
+        import_controls = view.controls[0].content.controls
+        class_import_row = import_controls[4]
+        student_import_row = import_controls[8]
         export_row = view.controls[1].content.controls[3]
         self.assertEqual(class_import_row.controls[0].height, 48)
         self.assertEqual(class_import_row.controls[0].width, 520)
         self.assertEqual(class_import_row.controls[2].content, "Importar turmas")
+        for button in (
+            class_import_row.controls[1],
+            class_import_row.controls[2],
+            student_import_row.controls[1],
+            student_import_row.controls[2],
+        ):
+            self.assertTrue(inspect.iscoroutinefunction(button.on_click))
         self.assertEqual(export_row.controls[2].content, "Exportar CSV")
 
 

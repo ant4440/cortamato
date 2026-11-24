@@ -21,7 +21,7 @@ class Prova:
 
 
 def listar_provas() -> list[Prova]:
-    """Return events that have not yet passed, ordered by date and start time."""
+    """Return all events ordered by date and start time."""
     connection = get_connection()
     cursor = None
 
@@ -31,7 +31,6 @@ def listar_provas() -> list[Prova]:
             """
             SELECT idprova, anolectivo, concelho, escola, data, horainicio, horafinal
             FROM prova
-            WHERE data >= CURDATE()
             ORDER BY data, horainicio, idprova
             """
         )
@@ -77,7 +76,7 @@ def atualizar_prova(
     horainicio: time,
     horafinal: time,
 ) -> None:
-    if idprova <= 0:
+    if not isinstance(idprova, int) or isinstance(idprova, bool) or idprova <= 0:
         raise ValueError("O identificador da prova é inválido.")
     anolectivo = anolectivo.strip()
     concelho = concelho.strip()
@@ -178,7 +177,10 @@ def _validar_prova(
 def _validar_ids(ids: list[int]) -> tuple[int, ...]:
     unique_ids = tuple(dict.fromkeys(ids))
     if not unique_ids or any(
-        not isinstance(item, int) or item <= 0 for item in unique_ids
+        not isinstance(item, int)
+        or isinstance(item, bool)
+        or item <= 0
+        for item in unique_ids
     ):
         raise ValueError("Selecione pelo menos uma prova válida.")
     return unique_ids

@@ -108,7 +108,6 @@ def listar_inscricoes() -> list[Inscricao]:
         FROM inscricao AS i
         JOIN aluno AS a ON a.numeroprocesso = i.numeroprocesso
         JOIN prova AS p ON p.idprova = i.idprova
-        WHERE p.data >= CURDATE()
         ORDER BY p.data DESC, a.nome, i.id
         """,
         (),
@@ -127,7 +126,6 @@ def listar_dorsais() -> list[Dorsal]:
         JOIN inscricao AS i ON i.id = d.inscricao_id
         JOIN aluno AS a ON a.numeroprocesso = i.numeroprocesso
         JOIN prova AS p ON p.idprova = i.idprova
-        WHERE p.data >= CURDATE()
         ORDER BY p.data DESC, d.numero
         """,
         (),
@@ -148,7 +146,6 @@ def listar_chegadas() -> list[Chegada]:
         JOIN aluno AS a ON a.numeroprocesso = i.numeroprocesso
         JOIN prova AS p ON p.idprova = i.idprova
         LEFT JOIN dorsal AS d ON d.inscricao_id = i.id
-        WHERE p.data >= CURDATE()
         ORDER BY c.tempo_chegada IS NULL, c.tempo_chegada, c.id
         """,
         (),
@@ -169,7 +166,6 @@ def listar_classificacoes() -> list[Classificacao]:
         JOIN aluno AS a ON a.numeroprocesso = i.numeroprocesso
         JOIN prova AS p ON p.idprova = c.prova_id
         LEFT JOIN escalao AS e ON e.id = c.escalao_id
-        WHERE p.data >= CURDATE()
         ORDER BY p.data DESC, e.designacao, c.posicao
         """,
         (),
@@ -186,7 +182,6 @@ def listar_escaloes() -> list[Escalao]:
                CONCAT(p.escola, ' · ', DATE_FORMAT(p.data, '%d/%m/%Y'))
         FROM escalao AS e
         JOIN prova AS p ON p.idprova = e.prova_id
-        WHERE p.data >= CURDATE()
         ORDER BY p.data DESC, e.designacao
         """,
         (),
@@ -207,7 +202,6 @@ def listar_regras_apuramento() -> list[RegraApuramento]:
         JOIN prova AS po ON po.idprova = r.prova_origem_id
         JOIN prova AS pd ON pd.idprova = r.prova_destino_id
         JOIN escalao AS e ON e.id = r.escalao_id
-        WHERE po.data >= CURDATE() AND pd.data >= CURDATE()
         ORDER BY pd.data DESC, po.data DESC, e.designacao
         """,
         (),
@@ -232,10 +226,9 @@ def listar_apurados(prova_destino_id: int | None = None) -> list[Apurado]:
         LEFT JOIN escalao AS e ON e.id = c.escalao_id
     """
     parameters: tuple[object, ...] = ()
-    query += " WHERE pd.data >= CURDATE() AND po.data >= CURDATE()"
     if prova_destino_id is not None:
         _validar_id(prova_destino_id, "A prova de destino")
-        query += " AND a.prova_destino_id = %s"
+        query += " WHERE a.prova_destino_id = %s"
         parameters = (prova_destino_id,)
     query += " ORDER BY pd.data DESC, e.designacao, c.posicao, al.nome"
     rows = _fetch_all(query, parameters, "Unable to load qualified participants")
@@ -872,7 +865,7 @@ def _validar_classificacao(
     _validar_id(prova_id, "A prova")
     if escalao_id is not None:
         _validar_id(escalao_id, "O escalão")
-    if posicao <= 0:
+    if not isinstance(posicao, int) or isinstance(posicao, bool) or posicao <= 0:
         raise ValueError("A posição deve ser um número positivo.")
 
 
@@ -942,7 +935,11 @@ def _validar_regra_apuramento(
     _validar_id(escalao_id, "O escalão")
     if prova_origem_id == prova_destino_id:
         raise ValueError("As provas de origem e destino têm de ser diferentes.")
-    if numero_apurados <= 0:
+    if (
+        not isinstance(numero_apurados, int)
+        or isinstance(numero_apurados, bool)
+        or numero_apurados <= 0
+    ):
         raise ValueError("O número de apurados deve ser positivo.")
     rows = _fetch_all(
         "SELECT prova_id FROM escalao WHERE id = %s",
@@ -954,14 +951,17 @@ def _validar_regra_apuramento(
 
 
 def _validar_id(value: int, label: str) -> None:
-    if not isinstance(value, int) or value <= 0:
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ValueError(f"{label} inválida.")
 
 
 def _validar_ids(ids: list[int]) -> tuple[int, ...]:
     unique_ids = tuple(dict.fromkeys(ids))
     if not unique_ids or any(
-        not isinstance(item, int) or item <= 0 for item in unique_ids
+        not isinstance(item, int)
+        or isinstance(item, bool)
+        or item <= 0
+        for item in unique_ids
     ):
         raise ValueError("Selecione pelo menos um registo válido.")
     return unique_ids

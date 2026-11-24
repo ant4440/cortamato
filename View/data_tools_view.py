@@ -62,6 +62,7 @@ def build_qr_reader_view(
     file_picker: ft.FilePicker,
     palette: dict[str, str],
     panel_builder: Callable[..., ft.Container],
+    allow_camera: bool = True,
 ) -> ft.Control:
     selected_file_text = ft.Text("", size=12, color=palette["muted"])
     status_text = ft.Text("", size=13, color=palette["muted"])
@@ -147,24 +148,34 @@ def build_qr_reader_view(
 
         page.run_thread(scan)
 
-    camera_button = ft.OutlinedButton(
-        content="Usar câmara",
-        on_click=start_camera_scan,
-    )
     image_button = ft.FilledButton(
         content="Selecionar imagem",
         on_click=choose_image,
+    )
+    action_controls: list[ft.Control] = [image_button]
+    camera_button: ft.OutlinedButton | None = None
+    if allow_camera:
+        camera_button = ft.OutlinedButton(
+            content="Usar câmara",
+            on_click=start_camera_scan,
+        )
+        action_controls.append(camera_button)
+
+    description = (
+        "Selecione uma imagem para ler o respetivo QR code."
+        if not allow_camera
+        else "Selecione uma imagem para ler o respetivo QR code ou use a câmara."
     )
 
     content = panel_builder(
         ft.Column(
             [
                 ft.Text(
-                    "Selecione uma imagem para ler o respetivo QR code ou use a câmara.",
+                    description,
                     size=13,
                     color=palette["muted"],
                 ),
-                ft.Row([image_button, camera_button], wrap=True),
+                ft.Row(action_controls, wrap=True),
                 selected_file_text,
                 status_text,
                 ft.Container(
@@ -284,6 +295,18 @@ def build_csv_tools_view(
             return
         display_import_summary(summary)
 
+    async def choose_classes_file(_event: object) -> None:
+        await choose_import_file("classes", "Selecionar CSV de turmas")
+
+    async def import_classes_file(_event: object) -> None:
+        await import_selected_file("classes", import_classes_csv)
+
+    async def choose_students_file(_event: object) -> None:
+        await choose_import_file("students", "Selecionar CSV de alunos")
+
+    async def import_students_file(_event: object) -> None:
+        await import_selected_file("students", import_students_csv)
+
     async def choose_export_directory(_event: object) -> None:
         nonlocal export_directory
         directory = await file_picker.get_directory_path(
@@ -388,18 +411,12 @@ def build_csv_tools_view(
                         ft.OutlinedButton(
                             content="Procurar...",
                             disabled=read_only,
-                            on_click=lambda _event: choose_import_file(
-                                "classes",
-                                "Selecionar CSV de turmas",
-                            ),
+                            on_click=choose_classes_file,
                         ),
                         ft.FilledButton(
                             content="Importar turmas",
                             disabled=read_only,
-                            on_click=lambda _event: import_selected_file(
-                                "classes",
-                                import_classes_csv,
-                            ),
+                            on_click=import_classes_file,
                         ),
                     ],
                     wrap=True,
@@ -423,18 +440,12 @@ def build_csv_tools_view(
                         ft.OutlinedButton(
                             content="Procurar...",
                             disabled=read_only,
-                            on_click=lambda _event: choose_import_file(
-                                "students",
-                                "Selecionar CSV de alunos",
-                            ),
+                            on_click=choose_students_file,
                         ),
                         ft.FilledButton(
                             content="Importar alunos",
                             disabled=read_only,
-                            on_click=lambda _event: import_selected_file(
-                                "students",
-                                import_students_csv,
-                            ),
+                            on_click=import_students_file,
                         ),
                     ],
                     wrap=True,
