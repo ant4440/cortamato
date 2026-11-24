@@ -1,3 +1,4 @@
+import inspect
 import unittest
 from datetime import date
 
@@ -193,11 +194,20 @@ class DataToolsViewTests(unittest.TestCase):
         )
 
         self.assertEqual(len(view.controls), 2)
-        class_import_row = view.controls[0].content.controls[4]
+        import_controls = view.controls[0].content.controls
+        class_import_row = import_controls[4]
+        student_import_row = import_controls[8]
         export_row = view.controls[1].content.controls[3]
         self.assertEqual(class_import_row.controls[0].height, 48)
         self.assertEqual(class_import_row.controls[0].width, 520)
         self.assertEqual(class_import_row.controls[2].content, "Importar turmas")
+        for button in (
+            class_import_row.controls[1],
+            class_import_row.controls[2],
+            student_import_row.controls[1],
+            student_import_row.controls[2],
+        ):
+            self.assertTrue(inspect.iscoroutinefunction(button.on_click))
         self.assertEqual(export_row.controls[2].content, "Exportar CSV")
 
 
