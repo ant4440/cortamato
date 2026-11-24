@@ -9,6 +9,7 @@ import flet as ft
 
 from Controllers.alunos_turmas_controller import AlunosTurmasController
 from Model.alunos_turmas import Aluno, Turma
+from View.feedback import show_temporary_feedback
 from View.date_time_fields import add_date_time_pickers
 from View.formatters import format_numeroprocesso
 
@@ -100,8 +101,7 @@ def build_alunos_turmas_view(
     )
 
     def show_error(message: str) -> None:
-        status_text.value = message
-        status_text.visible = True
+        show_temporary_feedback(page, status_text, message)
 
     def clear_error() -> None:
         status_text.value = ""
@@ -424,16 +424,20 @@ def build_alunos_turmas_view(
                 else:
                     controller.atualizar_aluno(*values)
             except ValueError as exc:
-                feedback.value = str(exc) or "Verifique os dados introduzidos."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    str(exc) or "Verifique os dados introduzidos.",
+                )
                 page.update()
                 return
             except ConnectionError:
                 logger.exception("Could not save student")
-                feedback.value = (
-                    "Não foi possível guardar. Verifique os dados e tente novamente."
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi possível guardar. Verifique os dados e tente novamente.",
                 )
-                feedback.visible = True
                 page.update()
                 return
 
@@ -499,16 +503,20 @@ def build_alunos_turmas_view(
                 else:
                     controller.atualizar_turma(turma.id, year, letter)
             except ValueError as exc:
-                feedback.value = str(exc) or "Verifique os dados introduzidos."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    str(exc) or "Verifique os dados introduzidos.",
+                )
                 page.update()
                 return
             except ConnectionError:
                 logger.exception("Could not save class")
-                feedback.value = (
-                    "Não foi possível guardar. Verifique se a turma já existe."
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi possível guardar. Verifique se a turma já existe.",
                 )
-                feedback.visible = True
                 page.update()
                 return
 
@@ -564,8 +572,11 @@ def build_alunos_turmas_view(
                     controller.eliminar_turmas(sorted(selected_class_ids))
             except ConnectionError:
                 logger.exception("Could not delete selected records")
-                feedback.value = "Não foi possível eliminar os registos."
-                feedback.visible = True
+                show_temporary_feedback(
+                    page,
+                    feedback,
+                    "Não foi possível eliminar os registos.",
+                )
                 page.update()
                 return
 
