@@ -190,9 +190,7 @@ def create_app(page: ft.Page) -> None:
         ("settings", "Definições"),
     ]
 
-    section_descriptions = {
-        "settings": "As definições da aplicação serão implementadas numa próxima etapa.",
-    }
+    section_descriptions: dict[str, str] = {}
 
     section_content = ft.Column(expand=True, spacing=10, scroll=ft.ScrollMode.AUTO)
     page_title = ft.Text(
@@ -1263,6 +1261,10 @@ def create_app(page: ft.Page) -> None:
         crop_canvas = create_square_crop_canvas(source_image)
         crop_canvas_size = crop_canvas.width
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+        minimum_zoom = minimum_crop_zoom(source_image.size)
+>>>>>>> Stashed changes
 =======
         minimum_zoom = minimum_crop_zoom(source_image.size)
 >>>>>>> Stashed changes
@@ -1278,7 +1280,11 @@ def create_app(page: ft.Page) -> None:
         )
         zoom_slider = ft.Slider(
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             min=minimum_crop_zoom(source_image.size),
+=======
+            min=minimum_zoom,
+>>>>>>> Stashed changes
 =======
             min=minimum_zoom,
 >>>>>>> Stashed changes
@@ -2139,14 +2145,16 @@ def create_app(page: ft.Page) -> None:
                     [
                         ft.Icon(ft.Icons.CONSTRUCTION_OUTLINED, size=30, color=PRIMARY),
                         ft.Text(
-                            "Esta secção ainda não está implementada.",
+                            "Secção indisponível.",
                             size=16,
                             weight=ft.FontWeight.W_600,
                             color=TEXT,
                         ),
-                        ft.Text(section_descriptions[key], size=12, color=MUTED),
                         ft.Text(
-                            "A funcionalidade desta secção será adicionada numa próxima etapa.",
+                            section_descriptions.get(
+                                key,
+                                "Esta secção não existe na navegação atual.",
+                            ),
                             size=12,
                             color=MUTED,
                         ),

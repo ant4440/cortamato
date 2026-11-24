@@ -320,7 +320,7 @@ def change_user_email(
 def update_user_name(user_id: int, name: str) -> bool:
     """Update an active user's display name."""
     name = name.strip()
-    if user_id <= 0:
+    if not isinstance(user_id, int) or isinstance(user_id, bool) or user_id <= 0:
         raise ValueError("O utilizador selecionado é inválido.")
     if not name or len(name) > 150:
         raise ValueError("O nome é obrigatório e deve ter até 150 caracteres.")
@@ -352,7 +352,7 @@ def update_user_name(user_id: int, name: str) -> bool:
 
 def update_user_profile_photo(user_id: int, photo_path: str) -> bool:
     """Update an active user's profile photo path."""
-    if user_id <= 0:
+    if not isinstance(user_id, int) or isinstance(user_id, bool) or user_id <= 0:
         raise ValueError("O utilizador selecionado é inválido.")
     if not photo_path or len(photo_path) > 255:
         raise ValueError("O caminho da fotografia de perfil é inválido.")
