@@ -149,7 +149,7 @@ def criar_turma(ano_escolar: int, letra: str) -> None:
 
 
 def atualizar_turma(id_turma: int, ano_escolar: int, letra: str) -> None:
-    if id_turma <= 0:
+    if not isinstance(id_turma, int) or isinstance(id_turma, bool) or id_turma <= 0:
         raise ValueError("O identificador da turma é inválido.")
     letra = letra.strip().upper()
     _validar_turma(ano_escolar, letra)
@@ -187,7 +187,11 @@ def _validar_aluno(
     sexo: str,
     turma_id: int | None,
 ) -> None:
-    if numeroprocesso <= 0:
+    if (
+        not isinstance(numeroprocesso, int)
+        or isinstance(numeroprocesso, bool)
+        or numeroprocesso <= 0
+    ):
         raise ValueError("O número de processo deve ser positivo.")
     if not nome.strip() or len(nome.strip()) > 150:
         raise ValueError("O nome é obrigatório e deve ter até 150 caracteres.")
@@ -199,12 +203,20 @@ def _validar_aluno(
         raise ValueError("A data de nascimento é inválida.")
     if sexo not in ("F", "M"):
         raise ValueError("Selecione um sexo válido.")
-    if turma_id is not None and turma_id <= 0:
+    if turma_id is not None and (
+        not isinstance(turma_id, int)
+        or isinstance(turma_id, bool)
+        or turma_id <= 0
+    ):
         raise ValueError("Selecione uma turma válida.")
 
 
 def _validar_turma(ano_escolar: int, letra: str) -> None:
-    if not 1 <= ano_escolar <= 12:
+    if (
+        not isinstance(ano_escolar, int)
+        or isinstance(ano_escolar, bool)
+        or not 1 <= ano_escolar <= 12
+    ):
         raise ValueError("O ano escolar deve estar entre 1 e 12.")
     if len(letra) != 1 or not "A" <= letra.upper() <= "Z":
         raise ValueError("A letra da turma deve ser uma letra de A a Z.")
@@ -213,7 +225,10 @@ def _validar_turma(ano_escolar: int, letra: str) -> None:
 def _validar_ids(ids: list[int]) -> tuple[int, ...]:
     unique_ids = tuple(dict.fromkeys(ids))
     if not unique_ids or any(
-        not isinstance(item, int) or item <= 0 for item in unique_ids
+        not isinstance(item, int)
+        or isinstance(item, bool)
+        or item <= 0
+        for item in unique_ids
     ):
         raise ValueError("Selecione pelo menos um registo válido.")
     return unique_ids

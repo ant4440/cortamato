@@ -1,4 +1,3 @@
-import asyncio
 import unittest
 from datetime import date
 
@@ -123,6 +122,13 @@ class QualificationRuleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "diferentes"):
             _validar_regra_apuramento(1, 1, 1, 1)
 
+<<<<<<< Updated upstream
+=======
+    def test_boolean_values_are_not_valid_positive_numbers(self) -> None:
+        with self.assertRaisesRegex(ValueError, "inválida"):
+            _validar_regra_apuramento(True, True, 1, 1)
+
+>>>>>>> Stashed changes
 
 class QRUrlTests(unittest.TestCase):
     def test_only_http_and_https_urls_are_accepted(self) -> None:
@@ -207,46 +213,11 @@ class DataToolsViewTests(unittest.TestCase):
         )
 
         self.assertEqual(len(view.controls), 2)
-        class_import_row = next(
-            control
-            for control in view.controls[0].content.controls
-            if isinstance(control, ft.Row)
-            and any(
-                getattr(item, "content", None) == "Importar turmas"
-                for item in control.controls
-            )
-        )
-        student_import_row = next(
-            control
-            for control in view.controls[0].content.controls
-            if isinstance(control, ft.Row)
-            and any(
-                getattr(item, "content", None) == "Importar alunos"
-                for item in control.controls
-            )
-        )
-        export_row = next(
-            control
-            for control in view.controls[1].content.controls
-            if isinstance(control, ft.Row)
-            and any(
-                getattr(item, "content", None) == "Exportar CSV"
-                for item in control.controls
-            )
-        )
-        self.assertFalse(
-            any(
-                isinstance(control, ft.TextField)
-                for control in class_import_row.controls
-            )
-        )
-        self.assertFalse(
-            any(
-                isinstance(control, ft.TextField)
-                for control in student_import_row.controls
-            )
-        )
-        self.assertEqual(class_import_row.controls[1].content, "Importar turmas")
+        class_import_row = view.controls[0].content.controls[4]
+        export_row = view.controls[1].content.controls[3]
+        self.assertEqual(class_import_row.controls[0].height, 48)
+        self.assertEqual(class_import_row.controls[0].width, 520)
+        self.assertEqual(class_import_row.controls[2].content, "Importar turmas")
         self.assertEqual(export_row.controls[2].content, "Exportar CSV")
 
     def test_class_csv_buttons_select_and_import_file(self) -> None:

@@ -865,7 +865,7 @@ def _validar_classificacao(
     _validar_id(prova_id, "A prova")
     if escalao_id is not None:
         _validar_id(escalao_id, "O escalão")
-    if posicao <= 0:
+    if not isinstance(posicao, int) or isinstance(posicao, bool) or posicao <= 0:
         raise ValueError("A posição deve ser um número positivo.")
 
 
@@ -935,7 +935,11 @@ def _validar_regra_apuramento(
     _validar_id(escalao_id, "O escalão")
     if prova_origem_id == prova_destino_id:
         raise ValueError("As provas de origem e destino têm de ser diferentes.")
-    if numero_apurados <= 0:
+    if (
+        not isinstance(numero_apurados, int)
+        or isinstance(numero_apurados, bool)
+        or numero_apurados <= 0
+    ):
         raise ValueError("O número de apurados deve ser positivo.")
     rows = _fetch_all(
         "SELECT prova_id FROM escalao WHERE id = %s",
@@ -947,14 +951,17 @@ def _validar_regra_apuramento(
 
 
 def _validar_id(value: int, label: str) -> None:
-    if not isinstance(value, int) or value <= 0:
+    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
         raise ValueError(f"{label} inválida.")
 
 
 def _validar_ids(ids: list[int]) -> tuple[int, ...]:
     unique_ids = tuple(dict.fromkeys(ids))
     if not unique_ids or any(
-        not isinstance(item, int) or item <= 0 for item in unique_ids
+        not isinstance(item, int)
+        or isinstance(item, bool)
+        or item <= 0
+        for item in unique_ids
     ):
         raise ValueError("Selecione pelo menos um registo válido.")
     return unique_ids
