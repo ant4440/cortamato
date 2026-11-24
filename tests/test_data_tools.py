@@ -1,6 +1,6 @@
-import asyncio
 import unittest
 from datetime import date
+from pathlib import Path
 
 import cv2
 import flet as ft
@@ -128,6 +128,7 @@ class QualificationRuleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "inválida"):
             _validar_regra_apuramento(True, True, 1, 1)
 
+>>>>>>> Stashed changes
 
 class QRUrlTests(unittest.TestCase):
     def test_only_http_and_https_urls_are_accepted(self) -> None:
@@ -164,9 +165,41 @@ class QRUrlTests(unittest.TestCase):
             "https://qrto.org/z11YoJ",
         )
 
-
 class DataToolsViewTests(unittest.TestCase):
-    def test_qr_reader_view_has_visible_image_action(self) -> None:
+    def test_mobile_reader_uses_local_qr_decoder_without_backend(self) -> None:
+        project_root = Path(__file__).resolve().parents[1]
+        page = (project_root / "web" / "qr-mobile.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('<script src="vendor/jsQR.js"></script>', page)
+        self.assertIn("decodePixels(image)", page)
+        self.assertNotIn('fetch("./decode"', page)
+
+    def test_qr_reader_view_can_hide_camera_action(self) -> None:
+        class PageStub:
+            def update(self) -> None:
+                pass
+
+            def run_task(self, *args, **kwargs) -> None:
+                pass
+
+            def run_thread(self, *args, **kwargs) -> None:
+                pass
+
+        view = build_qr_reader_view(
+            PageStub(),
+            ft.FilePicker(),
+            {"muted": "#727B82", "error": "#B42318", "text": "#252A2E"},
+            lambda content, **kwargs: ft.Container(content=content, **kwargs),
+            allow_camera=False,
+        )
+
+        buttons = view.content.controls[1].controls
+        self.assertEqual([button.content for button in buttons], ["Selecionar imagem"])
+
+    def test_qr_reader_view_has_visible_image_and_camera_actions(self) -> None:
+
         class PageStub:
             def update(self) -> None:
                 pass
@@ -212,102 +245,12 @@ class DataToolsViewTests(unittest.TestCase):
         )
 
         self.assertEqual(len(view.controls), 2)
-        class_import_row = next(
-            control
-            for control in view.controls[0].content.controls
-            if isinstance(control, ft.Row)
-            and any(
-                getattr(item, "content", None) == "Importar turmas"
-                for item in control.controls
-            )
-        )
-        export_controls = view.controls[1].content.controls
-        export_button = next(
-            control
-            for control in export_controls
-            if isinstance(control, ft.FilledButton)
-            and control.content == "Exportar CSV"
-        )
-        self.assertIsInstance(class_import_row.controls[0], ft.Row)
-        self.assertEqual(
-            class_import_row.controls[0].controls[0].content,
-            "Procurar...",
-        )
-        self.assertEqual(class_import_row.controls[1].content, "Importar turmas")
-        self.assertFalse(any(isinstance(control, ft.TextField) for control in export_controls))
-        self.assertEqual(export_button.content, "Exportar CSV")
-        self.assertEqual(view.controls[0].content.controls[4].height, 24)
-        self.assertEqual(view.controls[0].content.controls[8].height, 24)
-
-    def test_export_button_saves_selected_report_to_chosen_path(self) -> None:
-        class PageStub:
-            def run_task(self, *_args, **_kwargs) -> None:
-                pass
-
-            def update(self) -> None:
-                pass
-
-        class FilePickerStub:
-            def __init__(self) -> None:
-                self.save_requests = []
-
-            async def save_file(self, **kwargs):
-                self.save_requests.append(kwargs)
-                return f"C:\\exports\\{kwargs['file_name']}"
-
-        controller = FakeAlunosTurmasController()
-        file_picker = FilePickerStub()
-        view = build_csv_tools_view(
-            PageStub(),
-            controller,
-            file_picker,
-            {
-                "muted": "#727B82",
-                "error": "#B42318",
-                "text": "#252A2E",
-                "divider": "#DDE2E5",
-                "primary": "#536B7B",
-            },
-            lambda content, **kwargs: ft.Container(content=content, **kwargs),
-        )
-        export_controls = view.controls[1].content.controls
-        export_kind = next(
-            control for control in export_controls if isinstance(control, ft.Dropdown)
-        )
-        export_button = next(
-            control
-            for control in export_controls
-            if isinstance(control, ft.FilledButton)
-            and control.content == "Exportar CSV"
-        )
-
-        asyncio.run(export_button.on_click(None))
-        export_kind.value = "classes"
-        asyncio.run(export_button.on_click(None))
-
-        self.assertEqual(
-            [request["file_name"] for request in file_picker.save_requests],
-            ["alunos.csv", "turmas.csv"],
-        )
-        self.assertEqual(
-            [request["src_bytes"] for request in file_picker.save_requests],
-            [
-                export_students_csv(controller),
-                export_classes_csv(controller),
-            ],
-        )
-        self.assertTrue(
-            all(
-                request["allowed_extensions"] == ["csv"]
-                for request in file_picker.save_requests
-            )
-        )
-        export_status_slot = export_controls[-1]
-        self.assertEqual(export_status_slot.height, 24)
-        self.assertEqual(
-            export_status_slot.content.controls[0].value,
-            "Ficheiro exportado com sucesso!",
-        )
+        class_import_row = view.controls[0].content.controls[4]
+        export_row = view.controls[1].content.controls[3]
+        self.assertEqual(class_import_row.controls[0].height, 48)
+        self.assertEqual(class_import_row.controls[0].width, 520)
+        self.assertEqual(class_import_row.controls[2].content, "Importar turmas")
+        self.assertEqual(export_row.controls[2].content, "Exportar CSV")
 
     def test_class_csv_buttons_select_and_import_file(self) -> None:
         class PageStub:

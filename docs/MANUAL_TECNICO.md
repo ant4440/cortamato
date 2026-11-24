@@ -389,6 +389,10 @@ Cada operação indica:
 
 ## 9. Leitor QR code
 
+Além da secção integrada na aplicação principal, o leitor móvel está também na pasta autónoma `cortamato-web`, ao lado de `cortamato-main`. Essa pasta pode ser movida, copiada ou publicada num serviço de alojamento estático sem levar o resto do projeto. Não requer Python, API nem base de dados; a imagem QR é descodificada localmente no dispositivo.
+
+Mantenha a estrutura de ficheiros dentro de `cortamato-web/`, incluindo `qr-mobile.html`, `manifest.webmanifest`, `service-worker.js`, `icon.svg` e `vendor/`. A aplicação não necessita de comandos ou serviços no servidor depois de publicada. A câmara ao vivo requer HTTPS; a seleção de imagem é descodificada no dispositivo e funciona sem enviar o ficheiro para o host. Em desenvolvimento, `python qr_app.py --web` usa essa pasta automaticamente quando existe; `QR_WEB_DIRECTORY` pode indicar outra localização.
+
 ### 9.1 Ler uma imagem
 
 Na secção **Leitor QR code**:

@@ -62,6 +62,7 @@ def build_qr_reader_view(
     file_picker: ft.FilePicker,
     palette: dict[str, str],
     panel_builder: Callable[..., ft.Container],
+    allow_camera: bool = True,
 ) -> ft.Control:
     selected_file_text = ft.Text("", size=12, color=palette["muted"])
     status_text = ft.Text("", size=13, color=palette["muted"])
@@ -129,15 +130,62 @@ def build_qr_reader_view(
             return
         open_decoded_site(value)
 
+    async def finish_camera_scan(
+        value: str | None,
+        error: str | None = None,
+    ) -> None:
+        camera_button.disabled = False
+        if error is not None:
+            set_status(error, True)
+        elif value is None:
+            set_status("Leitura cancelada.")
+        else:
+            open_decoded_site(value)
+
+    def start_camera_scan(_event: object) -> None:
+        camera_button.disabled = True
+        set_status("A câmara foi aberta. Prima Q ou Esc na janela para fechar.")
+
+        def scan() -> None:
+            try:
+                value = scan_qr_with_camera()
+            except QRReaderError as exc:
+                page.run_task(finish_camera_scan, None, str(exc))
+                return
+            page.run_task(finish_camera_scan, value)
+
+        page.run_thread(scan)
+
+
     image_button = ft.FilledButton(
         content="Selecionar imagem",
         on_click=choose_image,
+    )
+    action_controls: list[ft.Control] = [image_button]
+    camera_button: ft.OutlinedButton | None = None
+    if allow_camera:
+        camera_button = ft.OutlinedButton(
+            content="Usar câmara",
+            on_click=start_camera_scan,
+        )
+        action_controls.append(camera_button)
+
+    description = (
+        "Selecione uma imagem para ler o respetivo QR code."
+        if not allow_camera
+        else "Selecione uma imagem para ler o respetivo QR code ou use a câmara."
     )
 
     content = panel_builder(
         ft.Column(
             [
-                ft.Row([image_button], wrap=True),
+                ft.Text(
+                    description,
+                    size=13,
+                    color=palette["muted"],
+                ),
+                ft.Row(action_controls, wrap=True),
+
                 selected_file_text,
                 status_text,
                 ft.Container(
@@ -343,6 +391,18 @@ def build_csv_tools_view(
     async def import_students_file(_event: object) -> None:
         await import_selected_file("students", import_students_csv)
 
+    async def choose_classes_file(_event: object) -> None:
+        await choose_import_file("classes", "Selecionar CSV de turmas")
+
+    async def import_classes_file(_event: object) -> None:
+        await import_selected_file("classes", import_classes_csv)
+
+    async def choose_students_file(_event: object) -> None:
+        await choose_import_file("students", "Selecionar CSV de alunos")
+
+    async def import_students_file(_event: object) -> None:
+        await import_selected_file("students", import_students_csv)
+
     def export_filename() -> str:
         return "alunos.csv" if export_kind.value == "students" else "turmas.csv"
 
@@ -431,7 +491,15 @@ def build_csv_tools_view(
                 ),
                 ft.Row(
                     [
-                        class_file_slot,
+                        class_file_path,
+                        ft.OutlinedButton(
+                            content="Procurar...",
+                            disabled=read_only,
+                            on_click=lambda _event: choose_import_file(
+                                "classes",
+                                "Selecionar CSV de turmas",
+                            ),
+                        ),
                         ft.FilledButton(
                             content="Importar turmas",
                             disabled=read_only,
@@ -450,7 +518,15 @@ def build_csv_tools_view(
                 ),
                 ft.Row(
                     [
-                        student_file_slot,
+                        student_file_path,
+                        ft.OutlinedButton(
+                            content="Procurar...",
+                            disabled=read_only,
+                            on_click=lambda _event: choose_import_file(
+                                "students",
+                                "Selecionar CSV de alunos",
+                            ),
+                        ),
                         ft.FilledButton(
                             content="Importar alunos",
                             disabled=read_only,

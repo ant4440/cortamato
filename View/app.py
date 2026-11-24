@@ -37,6 +37,7 @@ from View.competition_records_view import (
 from View.date_time_fields import add_date_time_pickers
 from View.data_tools_view import build_csv_tools_view, build_qr_reader_view
 from View.feedback import dismiss_temporary_dialog, show_temporary_feedback
+
 from View.image_crop import create_square_crop_canvas, minimum_crop_zoom
 
 
@@ -1311,6 +1312,10 @@ def create_app(page: ft.Page) -> None:
         crop_canvas = create_square_crop_canvas(source_image)
         crop_canvas_size = crop_canvas.width
         minimum_zoom = minimum_crop_zoom(source_image.size)
+>>>>>>> Stashed changes
+=======
+        minimum_zoom = minimum_crop_zoom(source_image.size)
+>>>>>>> Stashed changes
         preview_size = 220
         output_size = 512
         crop_center_x = crop_canvas_size / 2
@@ -1323,6 +1328,10 @@ def create_app(page: ft.Page) -> None:
         )
         zoom_slider = ft.Slider(
             min=minimum_zoom,
+>>>>>>> Stashed changes
+=======
+            min=minimum_zoom,
+>>>>>>> Stashed changes
             max=3,
             value=minimum_zoom,
             divisions=20,
