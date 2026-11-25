@@ -1820,7 +1820,7 @@ def build_categories_view(
                     1,
                     palette["primary"] if tab_key == key else palette["border"],
                 ),
-                shape=ft.RoundedRectangleBorder(radius=0),
+                shape=ft.RoundedRectangleBorder(radius=8),
             )
         table_builder = {
             "escaloes": build_escaloes_table,

@@ -227,10 +227,11 @@ Na aplicação, o utilizador pode ainda alterar o nome e a fotografia de perfil,
 
 O Dashboard apresenta um resumo da atividade:
 
-- número de utilizadores;
-- próximo evento;
-- próximas provas;
-- contagens de alunos inscritos;
+- próxima prova e respetivos dados;
+- alunos inscritos na próxima prova;
+- número de provas futuras, alunos e turmas;
+- próximas provas com o número de inscritos por prova;
+- inscrições agrupadas por estado;
 - fotografia e nome do utilizador autenticado.
 
 ### 7.3 Provas

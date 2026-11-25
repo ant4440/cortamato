@@ -128,7 +128,6 @@ class QualificationRuleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "inválida"):
             _validar_regra_apuramento(True, True, 1, 1)
 
->>>>>>> Stashed changes
 
 class QRUrlTests(unittest.TestCase):
     def test_only_http_and_https_urls_are_accepted(self) -> None:

@@ -35,7 +35,7 @@ from View.competition_records_view import (
     build_inscricoes_view,
 )
 from View.date_time_fields import add_date_time_pickers
-from View.data_tools_view import build_csv_tools_view, build_qr_reader_view
+from View.data_tools_view import build_csv_tools_view
 from View.feedback import dismiss_temporary_dialog, show_temporary_feedback
 
 from View.image_crop import create_square_crop_canvas, minimum_crop_zoom
@@ -64,6 +64,7 @@ LIGHT_PALETTE = {
     "primary": PRIMARY,
     "sidebar": SIDEBAR,
     "selected": "#E3E9ED",
+    "hover": "#EAEEF1",
     "metric_label": "#59636B",
     "border": "#E1E5E8",
     "divider": "#DDE2E5",
@@ -78,6 +79,7 @@ DARK_PALETTE = {
     "primary": "#A7BAC7",
     "sidebar": "#171A1D",
     "selected": "#29343B",
+    "hover": "#222A30",
     "metric_label": "#C2C8CD",
     "border": "#343B40",
     "divider": "#343B40",
@@ -98,20 +100,40 @@ def format_hora(value: time | timedelta) -> str:
 
 def nav_item(
     label: str,
+    icon: str,
     selected: bool = False,
     on_click: Callable[..., None] | None = None,
+    on_hover: Callable[..., None] | None = None,
 ) -> ft.Container:
     return ft.Container(
-        content=ft.Text(
-            label,
-            size=15,
-            weight=ft.FontWeight.W_600 if selected else ft.FontWeight.NORMAL,
-            color=TEXT if selected else MUTED,
+        content=ft.Row(
+            [
+                ft.Icon(
+                    icon,
+                    size=18,
+                    color=TEXT if selected else MUTED,
+                ),
+                ft.Text(
+                    label,
+                    size=15,
+                    weight=(
+                        ft.FontWeight.W_600
+                        if selected
+                        else ft.FontWeight.NORMAL
+                    ),
+                    color=TEXT if selected else MUTED,
+                ),
+            ],
+            spacing=12,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
         ),
         padding=ft.Padding.symmetric(horizontal=14, vertical=12),
         bgcolor=LIGHT_PALETTE["selected"] if selected else None,
+        border=ft.Border.all(1, ft.Colors.TRANSPARENT),
         border_radius=8,
+        animate=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
         on_click=on_click,
+        on_hover=on_hover,
     )
 
 
@@ -126,7 +148,7 @@ def panel(
         content=content,
         padding=padding,
         bgcolor=bgcolor,
-        border=ft.Border.all(1, "#E9E8E2"),
+        border=ft.Border.all(1, LIGHT_PALETTE["border"]),
         border_radius=12,
         width=width,
         expand=expand,
@@ -145,8 +167,8 @@ def create_app(page: ft.Page) -> None:
     page.theme_animation_style = ft.AnimationStyle.no_animation()
 
     def build_theme() -> ft.Theme:
-        square_button_style = ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=0),
+        rounded_button_style = ft.ButtonStyle(
+            shape=ft.RoundedRectangleBorder(radius=8),
         )
         return ft.Theme(
             color_scheme_seed=PRIMARY,
@@ -161,11 +183,13 @@ def create_app(page: ft.Page) -> None:
                 macos=ft.PageTransitionTheme.NONE,
                 windows=ft.PageTransitionTheme.NONE,
             ),
-            button_theme=ft.ButtonTheme(style=square_button_style),
-            outlined_button_theme=ft.OutlinedButtonTheme(style=square_button_style),
-            text_button_theme=ft.TextButtonTheme(style=square_button_style),
-            filled_button_theme=ft.FilledButtonTheme(style=square_button_style),
-            icon_button_theme=ft.IconButtonTheme(style=square_button_style),
+            button_theme=ft.ButtonTheme(style=rounded_button_style),
+            outlined_button_theme=ft.OutlinedButtonTheme(
+                style=rounded_button_style
+            ),
+            text_button_theme=ft.TextButtonTheme(style=rounded_button_style),
+            filled_button_theme=ft.FilledButtonTheme(style=rounded_button_style),
+            icon_button_theme=ft.IconButtonTheme(style=rounded_button_style),
         )
 
     page.theme = build_theme()
@@ -187,11 +211,22 @@ def create_app(page: ft.Page) -> None:
         ("arrivals", "Chegadas"),
         ("results", "Classificações"),
         ("categories", "Escalões e apuramentos"),
-        ("qr-reader", "Leitor QR code"),
         ("csv-tools", "Importar e exportar"),
         ("settings", "Definições"),
     ]
 
+    section_icons = {
+        "overview": ft.Icons.SPACE_DASHBOARD_OUTLINED,
+        "provas": ft.Icons.EVENT_OUTLINED,
+        "students": ft.Icons.GROUPS_OUTLINED,
+        "registrations": ft.Icons.HOW_TO_REG_OUTLINED,
+        "bibs": ft.Icons.CONFIRMATION_NUMBER_OUTLINED,
+        "arrivals": ft.Icons.FLAG_OUTLINED,
+        "results": ft.Icons.LEADERBOARD_OUTLINED,
+        "categories": ft.Icons.CATEGORY_OUTLINED,
+        "csv-tools": ft.Icons.IMPORT_EXPORT,
+        "settings": ft.Icons.SETTINGS_OUTLINED,
+    }
     section_descriptions: dict[str, str] = {}
 
     section_content = ft.Column(expand=True, spacing=10, scroll=ft.ScrollMode.AUTO)
@@ -203,8 +238,8 @@ def create_app(page: ft.Page) -> None:
         expand=True,
     )
     navigation_items: dict[str, list[ft.Container]] = {}
+    current_section = "overview"
     navigation_open = True
-    profile_menu_open = False
     login_page_active = False
     current_user_id: int | None = None
     current_user_email: str | None = None
@@ -252,9 +287,41 @@ def create_app(page: ft.Page) -> None:
     content_menu_button.visible = False
 
     def create_navigation_item(key: str, label: str) -> ft.Container:
+        def handle_nav_hover(event: ft.Event[ft.Container]) -> None:
+            hovering = bool(event.data)
+            palette = DARK_PALETTE if dark_theme_active else LIGHT_PALETTE
+            selected = current_section == key
+            item.bgcolor = (
+                palette["hover"]
+                if hovering
+                else (palette["selected"] if selected else None)
+            )
+            item.border = ft.Border.all(
+                1,
+                palette["primary"] if hovering else ft.Colors.TRANSPARENT,
+            )
+            content = item.content
+            if isinstance(content, ft.Row):
+                for child in content.controls:
+                    if isinstance(child, ft.Icon):
+                        child.color = (
+                            palette["primary"]
+                            if hovering or selected
+                            else palette["muted"]
+                        )
+                    elif isinstance(child, ft.Text):
+                        child.color = (
+                            palette["text"]
+                            if hovering or selected
+                            else palette["muted"]
+                        )
+            item.update()
+
         item = nav_item(
             label,
+            section_icons.get(key, ft.Icons.CIRCLE_OUTLINED),
             on_click=lambda _event, selected_key=key: show_section(selected_key),
+            on_hover=handle_nav_hover,
         )
         navigation_items.setdefault(key, []).append(item)
         return item
@@ -284,26 +351,53 @@ def create_app(page: ft.Page) -> None:
         ],
         spacing=8,
         expand=True,
+        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
     )
-    profile_name = ft.Text("Administrador", size=12, color=TEXT)
-    profile_avatar_initial = ft.Text("A", size=12, color="#FFFFFF")
+    profile_name = ft.Text("Administrador", size=13, color=TEXT)
+    profile_avatar_initial = ft.Text("A", size=13, color="#FFFFFF")
     profile_sidebar_avatar = ft.CircleAvatar(
         content=profile_avatar_initial,
         bgcolor=PRIMARY,
-        radius=16,
+        radius=20,
+    )
+    profile_avatar_button = ft.Container(
+        content=profile_sidebar_avatar,
+        width=44,
+        height=44,
+        alignment=ft.Alignment.CENTER,
+        border=ft.Border.all(1, ft.Colors.TRANSPARENT),
+        border_radius=22,
+        animate=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
+    )
+    logout_confirm_pending = False
+    logout_confirm_generation = 0
+    exit_icon = ft.IconButton(
+        icon=ft.Icons.LOGOUT,
+        icon_size=18,
+        tooltip="Terminar sessão",
+        style=ft.ButtonStyle(overlay_color=ft.Colors.TRANSPARENT),
+    )
+    exit_icon_container = ft.Container(
+        content=exit_icon,
+        border_radius=8,
+        visible=False,
+        animate=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
     )
     profile_button = ft.Container(
         content=ft.Row(
             [
-                profile_sidebar_avatar,
+                profile_avatar_button,
                 profile_name,
+                ft.Container(expand=True),
+                exit_icon_container,
             ],
             spacing=10,
+            expand=True,
         ),
         width=220,
-        height=48,
+        height=60,
         alignment=ft.Alignment.CENTER_LEFT,
-        border_radius=8,
+        border_radius=10,
     )
     collapsed_sidebar_spacer = ft.Container(expand=True, visible=False)
 
@@ -562,51 +656,6 @@ def create_app(page: ft.Page) -> None:
         "",
         size=12,
         color=MUTED,
-        visible=False,
-    )
-    logout_label = ft.Text(
-        "Terminar sessão",
-        size=13,
-        color=LIGHT_PALETTE["error"],
-    )
-    logout_button = ft.Container(
-        content=logout_label,
-        padding=ft.Padding.symmetric(horizontal=8, vertical=8),
-        border_radius=6,
-        on_click=None,
-    )
-    profile_menu_profile_action = ft.Container(
-        content=ft.Text("Perfil", size=13, color=TEXT),
-        padding=ft.Padding.symmetric(horizontal=8, vertical=8),
-        border_radius=6,
-        on_click=None,
-    )
-    dismiss_profile_overlay = ft.Container(
-        left=0,
-        right=0,
-        top=0,
-        bottom=0,
-        bgcolor=ft.Colors.TRANSPARENT,
-        visible=False,
-        on_click=None,
-    )
-    profile_menu = ft.Container(
-        content=ft.Column(
-            [
-                profile_menu_profile_action,
-                ft.Divider(height=1, color=LIGHT_PALETTE["divider"]),
-                logout_button,
-            ],
-            spacing=6,
-            tight=True,
-        ),
-        width=174,
-        padding=10,
-        bgcolor=SURFACE,
-        border=ft.Border.all(1, LIGHT_PALETTE["border"]),
-        border_radius=8,
-        left=90,
-        bottom=20,
         visible=False,
     )
     first_page_button = ft.IconButton(
@@ -980,15 +1029,28 @@ def create_app(page: ft.Page) -> None:
 
     dark_theme_active = False
 
-    def theme_button_style(selected: bool, dark: bool) -> ft.ButtonStyle:
+    def theme_button_style(
+        selected: bool,
+        dark: bool,
+        hovering: bool = False,
+    ) -> ft.ButtonStyle:
         palette = DARK_PALETTE if dark else LIGHT_PALETTE
+        if selected:
+            bgcolor = palette["selected"]
+        elif hovering:
+            bgcolor = palette["hover"]
+        else:
+            bgcolor = palette["surface"]
         return ft.ButtonStyle(
             color=palette["text"],
-            bgcolor=palette["selected"] if selected else palette["surface"],
+            bgcolor=bgcolor,
             overlay_color=ft.Colors.TRANSPARENT,
-            animation_duration=0,
-            side=ft.BorderSide(1, palette["primary"] if selected else palette["border"]),
-            shape=ft.RoundedRectangleBorder(radius=0),
+            animation_duration=180,
+            side=ft.BorderSide(
+                1,
+                palette["primary"] if selected or hovering else palette["border"],
+            ),
+            shape=ft.RoundedRectangleBorder(radius=8),
         )
 
     def apply_theme_colors(dark: bool, update_page: bool = True) -> None:
@@ -1006,7 +1068,9 @@ def create_app(page: ft.Page) -> None:
         change_email_button.style = theme_button_style(False, dark)
         change_password_button.style = theme_button_style(False, dark)
         edit_profile_name_button.style = theme_button_style(False, dark)
-        logout_label.color = next_palette["error"]
+        exit_icon.icon_color = (
+            next_palette["primary"] if logout_confirm_pending else next_palette["muted"]
+        )
         visited: set[int] = set()
 
         def update_control(control: object) -> None:
@@ -1038,6 +1102,20 @@ def create_app(page: ft.Page) -> None:
                         break
                 if control.border is not None:
                     control.border = ft.Border.all(1, next_palette["border"])
+            elif isinstance(control, ft.Icon):
+                for palette_key in (
+                    "text",
+                    "muted",
+                    "primary",
+                    "error",
+                    "metric_label",
+                ):
+                    if control.color in (
+                        LIGHT_PALETTE[palette_key],
+                        DARK_PALETTE[palette_key],
+                    ):
+                        control.color = next_palette[palette_key]
+                        break
             elif isinstance(control, ft.Divider):
                 if control.color in (
                     LIGHT_PALETTE["divider"],
@@ -1074,18 +1152,32 @@ def create_app(page: ft.Page) -> None:
 
         for root_control in page.controls:
             update_control(root_control)
-        for items in navigation_items.values():
+        for section_key, items in navigation_items.items():
             for item in items:
-                selected = item.bgcolor is not None
+                selected = section_key == current_section
                 item.bgcolor = next_palette["selected"] if selected else None
-                text = item.content
-                if isinstance(text, ft.Text):
-                    text.color = (
-                        next_palette["text"] if selected else next_palette["muted"]
-                    )
-                    text.weight = (
-                        ft.FontWeight.W_600 if selected else ft.FontWeight.NORMAL
-                    )
+                item.border = ft.Border.all(1, ft.Colors.TRANSPARENT)
+                content = item.content
+                if isinstance(content, ft.Row):
+                    for child in content.controls:
+                        if isinstance(child, ft.Icon):
+                            child.color = (
+                                next_palette["primary"]
+                                if selected
+                                else next_palette["muted"]
+                            )
+                        elif isinstance(child, ft.Text):
+                            child.color = (
+                                next_palette["text"]
+                                if selected
+                                else next_palette["muted"]
+                            )
+                            child.weight = (
+                                ft.FontWeight.W_600
+                                if selected
+                                else ft.FontWeight.NORMAL
+                            )
+        profile_avatar_button.border = ft.Border.all(1, ft.Colors.TRANSPARENT)
         if update_page:
             page.update()
 
@@ -1102,6 +1194,26 @@ def create_app(page: ft.Page) -> None:
     light_theme_button.on_click = lambda _event: set_theme(False)
     dark_theme_button.on_click = lambda _event: set_theme(True)
     hide_ids_switch.on_change = toggle_hide_table_ids
+
+    def bind_settings_button_hover(
+        button: ft.OutlinedButton,
+        is_selected: Callable[[], bool],
+    ) -> None:
+        def handle_hover(event: ft.Event[ft.OutlinedButton]) -> None:
+            button.style = theme_button_style(
+                is_selected(),
+                dark_theme_active,
+                bool(event.data),
+            )
+            button.update()
+
+        button.on_hover = handle_hover
+
+    bind_settings_button_hover(light_theme_button, lambda: not dark_theme_active)
+    bind_settings_button_hover(dark_theme_button, lambda: dark_theme_active)
+    bind_settings_button_hover(change_email_button, lambda: False)
+    bind_settings_button_hover(change_password_button, lambda: False)
+    bind_settings_button_hover(edit_profile_name_button, lambda: False)
 
     def profile_photo_source(photo_path: str | None) -> str | None:
         if not photo_path:
@@ -1134,15 +1246,7 @@ def create_app(page: ft.Page) -> None:
             color=color,
         )
 
-    def dismiss_profile_menu(_event: object | None = None) -> None:
-        nonlocal profile_menu_open
-        profile_menu_open = False
-        profile_menu.visible = False
-        dismiss_profile_overlay.visible = False
-        page.update()
-
     def open_profile_dialog(_event: object | None = None) -> None:
-        dismiss_profile_menu()
         if demo_mode or current_user_id is None:
             return
         palette = DARK_PALETTE if dark_theme_active else LIGHT_PALETTE
@@ -1312,10 +1416,6 @@ def create_app(page: ft.Page) -> None:
         crop_canvas = create_square_crop_canvas(source_image)
         crop_canvas_size = crop_canvas.width
         minimum_zoom = minimum_crop_zoom(source_image.size)
->>>>>>> Stashed changes
-=======
-        minimum_zoom = minimum_crop_zoom(source_image.size)
->>>>>>> Stashed changes
         preview_size = 220
         output_size = 512
         crop_center_x = crop_canvas_size / 2
@@ -1328,10 +1428,6 @@ def create_app(page: ft.Page) -> None:
         )
         zoom_slider = ft.Slider(
             min=minimum_zoom,
->>>>>>> Stashed changes
-=======
-            min=minimum_zoom,
->>>>>>> Stashed changes
             max=3,
             value=minimum_zoom,
             divisions=20,
@@ -1493,7 +1589,6 @@ def create_app(page: ft.Page) -> None:
         page.update()
 
     profile_settings_avatar_hover.on_hover = toggle_profile_photo_edit_overlay
-    profile_menu_profile_action.on_click = open_profile_dialog
 
     def open_change_email_dialog() -> None:
         email = current_user_email
@@ -1839,110 +1934,221 @@ def create_app(page: ft.Page) -> None:
     change_password_button.on_click = lambda _event: open_change_password_dialog()
 
     def build_dashboard_content() -> ft.Control:
+        def dashboard_error(message: str) -> ft.Control:
+            return panel(
+                ft.Column(
+                    [
+                        ft.Text(
+                            "Não foi possível carregar o dashboard.",
+                            size=16,
+                            weight=ft.FontWeight.W_600,
+                            color=TEXT,
+                        ),
+                        ft.Text(message, size=13, color="#B42318"),
+                    ],
+                    spacing=10,
+                    tight=True,
+                ),
+                padding=22,
+            )
+
         try:
             provas = current_provas_controller().listar_provas()
-        except ConnectionError as exc:
-            return panel(
-                ft.Column(
-                    [
-                        ft.Text(
-                            "Não foi possível carregar o dashboard.",
-                            size=16,
-                            weight=ft.FontWeight.W_600,
-                            color=TEXT,
-                        ),
-                        ft.Text(str(exc), size=13, color="#B42318"),
-                    ],
-                    spacing=10,
-                    tight=True,
-                ),
-                padding=22,
-            )
-
-        today = date.today()
-        upcoming_provas = [prova for prova in provas if prova.data >= today]
-        next_prova = upcoming_provas[0] if upcoming_provas else None
-        try:
-            enrolled_students = (
-                current_provas_controller().contar_alunos_inscritos(
-                    next_prova.idprova
-                )
-                if next_prova is not None
-                else 0
-            )
-            profile_count = (
-                auth_controller.contar_utilizadores()
-                if not demo_mode
-                else None
+            alunos = current_alunos_turmas_controller().listar_alunos()
+            turmas = current_alunos_turmas_controller().listar_turmas()
+            inscricoes = (
+                current_competition_records_controller().listar_inscricoes()
             )
         except ConnectionError as exc:
-            return panel(
-                ft.Column(
-                    [
-                        ft.Text(
-                            "Não foi possível carregar o dashboard.",
-                            size=16,
-                            weight=ft.FontWeight.W_600,
-                            color=TEXT,
-                        ),
-                        ft.Text(str(exc), size=13, color="#B42318"),
-                    ],
-                    spacing=10,
-                    tight=True,
-                ),
-                padding=22,
-            )
+            return dashboard_error(str(exc))
 
         palette = DARK_PALETTE if dark_theme_active else LIGHT_PALETTE
+        today = date.today()
+        upcoming_provas = sorted(
+            (prova for prova in provas if prova.data >= today),
+            key=lambda prova: (prova.data, prova.horainicio),
+        )
+        next_prova = upcoming_provas[0] if upcoming_provas else None
+        inscritos_por_prova: dict[int, int] = {}
+        for inscricao in inscricoes:
+            if inscricao.estado in {"inscrito", "participante"}:
+                inscritos_por_prova[inscricao.idprova] = (
+                    inscritos_por_prova.get(inscricao.idprova, 0) + 1
+                )
+        next_prova_inscritos = (
+            inscritos_por_prova.get(next_prova.idprova, 0)
+            if next_prova is not None
+            else 0
+        )
 
         def metric_card(
             title: str,
             value: str,
-            tooltip: str | None = None,
+            subtitle: str = "",
+            target_section: str = "overview",
+            icon: str = ft.Icons.INSIGHTS_OUTLINED,
         ) -> ft.Container:
-            return ft.Container(
+            resting_border = ft.Border.all(1, palette["border"])
+            active_border = ft.Border.all(1, palette["primary"])
+            resting_shadow = ft.BoxShadow(
+                spread_radius=0,
+                blur_radius=0,
+                color="#00000000",
+                offset=ft.Offset(0, 0),
+            )
+            active_shadow = ft.BoxShadow(
+                spread_radius=0,
+                blur_radius=18,
+                color="#22000000",
+                offset=ft.Offset(0, 4),
+            )
+
+            def handle_hover(event: ft.Event[ft.Container]) -> None:
+                hovering = bool(event.data)
+                card.bgcolor = (
+                    palette["selected"] if hovering else palette["surface"]
+                )
+                card.border = active_border if hovering else resting_border
+                card.shadow = active_shadow if hovering else resting_shadow
+                card.update()
+
+            card = ft.Container(
                 content=ft.Column(
                     [
-                        ft.Text(title, size=13, color=palette["metric_label"]),
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    title,
+                                    size=13,
+                                    color=palette["metric_label"],
+                                    expand=True,
+                                ),
+                                ft.Container(
+                                    content=ft.Icon(
+                                        icon,
+                                        size=16,
+                                        color=palette["primary"],
+                                    ),
+                                    width=28,
+                                    height=28,
+                                    alignment=ft.Alignment.CENTER,
+                                    bgcolor=palette["selected"],
+                                    border_radius=8,
+                                ),
+                            ],
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
                         ft.Text(
                             value,
-                            size=28,
+                            size=24,
                             weight=ft.FontWeight.W_600,
                             color=TEXT,
                         ),
+                        ft.Text(subtitle, size=12, color=MUTED),
                     ],
-                    spacing=8,
+                    spacing=6,
                     tight=True,
                 ),
-                width=190,
                 padding=18,
+                expand=True,
                 bgcolor=palette["surface"],
-                border=ft.Border.all(1, palette["border"]),
+                border=resting_border,
                 border_radius=12,
-                tooltip=tooltip,
+                shadow=resting_shadow,
+                animate=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
+                on_hover=handle_hover,
+                on_click=lambda _event, key=target_section: show_section(key),
+            )
+            return card
+
+        def panel_header(
+            title: str,
+            action_label: str,
+            action_section: str,
+        ) -> ft.Row:
+            return ft.Row(
+                [
+                    ft.Text(
+                        title,
+                        size=17,
+                        weight=ft.FontWeight.W_600,
+                        color=TEXT,
+                    ),
+                    ft.Container(expand=True),
+                    ft.TextButton(
+                        content=action_label,
+                        on_click=lambda _event, key=action_section: show_section(
+                            key
+                        ),
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
             )
 
-        next_prova_date = (
-            next_prova.data.strftime("%d/%m/%Y") if next_prova is not None else "—"
-        )
+        def stat_row(label: str, value: str) -> ft.Row:
+            return ft.Row(
+                [
+                    ft.Text(label, size=13, color=MUTED),
+                    ft.Container(expand=True),
+                    ft.Text(
+                        value,
+                        size=14,
+                        weight=ft.FontWeight.W_600,
+                        color=TEXT,
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            )
+
         metrics = ft.Row(
             [
-                metric_card("Provas registadas", str(len(provas))),
-                metric_card("Provas futuras", str(len(upcoming_provas))),
-                metric_card("Próxima prova", next_prova_date),
-                metric_card("Alunos inscritos", str(enrolled_students)),
                 metric_card(
-                    "Responsáveis",
-                    str(profile_count) if profile_count is not None else "—",
+                    "Próxima prova",
+                    (
+                        next_prova.data.strftime("%d/%m/%Y")
+                        if next_prova is not None
+                        else "—"
+                    ),
+                    (
+                        f"{next_prova.escola} · {next_prova.concelho}"
+                        if next_prova is not None
+                        else "Sem provas agendadas"
+                    ),
+                    "provas",
+                    icon=ft.Icons.CALENDAR_MONTH_OUTLINED,
+                ),
+                metric_card(
+                    "Alunos inscritos",
+                    str(next_prova_inscritos),
+                    (
+                        "na próxima prova"
+                        if next_prova is not None
+                        else "sem próxima prova"
+                    ),
+                    "registrations",
+                    icon=ft.Icons.HOW_TO_REG_OUTLINED,
+                ),
+                metric_card(
+                    "Provas futuras",
+                    str(len(upcoming_provas)),
+                    "agendadas" if upcoming_provas else "sem agendamentos",
+                    "provas",
+                    icon=ft.Icons.EVENT_AVAILABLE_OUTLINED,
+                ),
+                metric_card(
+                    "Alunos",
+                    str(len(alunos)),
+                    f"em {len(turmas)} turmas" if turmas else "sem turmas",
+                    "students",
+                    icon=ft.Icons.GROUP_OUTLINED,
                 ),
             ],
             spacing=12,
-            run_spacing=12,
-            wrap=True,
         )
 
         upcoming_rows: list[ft.Control] = []
         for prova in upcoming_provas[:5]:
+            inscritos = inscritos_por_prova.get(prova.idprova, 0)
             upcoming_rows.extend(
                 [
                     ft.Row(
@@ -1956,27 +2162,46 @@ def create_app(page: ft.Page) -> None:
                                         color=TEXT,
                                     ),
                                     ft.Text(
-                                        f"{format_hora(prova.horainicio)}–{format_hora(prova.horafinal)}",
+                                        f"{format_hora(prova.horainicio)}–"
+                                        f"{format_hora(prova.horafinal)}",
                                         size=12,
                                         color=MUTED,
                                     ),
                                 ],
                                 spacing=4,
-                                width=125,
+                                width=105,
                             ),
                             ft.Column(
                                 [
                                     ft.Text(prova.escola, size=14, color=TEXT),
-                                    ft.Text(prova.concelho, size=12, color=MUTED),
+                                    ft.Text(
+                                        prova.concelho,
+                                        size=12,
+                                        color=MUTED,
+                                    ),
                                 ],
                                 spacing=4,
                                 expand=True,
+                            ),
+                            ft.Container(
+                                content=ft.Text(
+                                    f"{inscritos} "
+                                    f"{'inscrito' if inscritos == 1 else 'inscritos'}",
+                                    size=12,
+                                    color=palette["primary"],
+                                ),
+                                padding=ft.Padding.symmetric(
+                                    horizontal=10,
+                                    vertical=4,
+                                ),
+                                bgcolor=palette["selected"],
+                                border_radius=999,
                             ),
                         ],
                         spacing=16,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
-                    ft.Divider(color="#E1E5E8"),
+                    ft.Divider(height=1, color=palette["divider"]),
                 ]
             )
 
@@ -1991,35 +2216,106 @@ def create_app(page: ft.Page) -> None:
                 )
             )
 
-        return ft.Column(
-            [
-                metrics,
-                panel(
-                    ft.Column(
-                        [
-                            ft.Text(
-                                "Próximas provas",
-                                size=17,
-                                weight=ft.FontWeight.W_600,
-                                color=TEXT,
-                            ),
-                            *upcoming_rows,
-                        ],
-                        spacing=12,
-                        tight=True,
+        estado_labels = {
+            "inscrito": "Inscritos",
+            "participante": "Participantes",
+            "nao_inscrito": "Não inscritos",
+            "organizacao": "Organização",
+        }
+        estado_counts: dict[str, int] = {}
+        for inscricao in inscricoes:
+            estado_counts[inscricao.estado] = (
+                estado_counts.get(inscricao.estado, 0) + 1
+            )
+
+        inscricao_rows: list[ft.Control] = [
+            stat_row("Total", str(len(inscricoes))),
+        ]
+        ordered_estados = [
+            estado for estado in estado_labels if estado_counts.get(estado)
+        ]
+        ordered_estados.extend(
+            sorted(
+                estado
+                for estado in estado_counts
+                if estado not in estado_labels
+            )
+        )
+        for estado in ordered_estados:
+            inscricao_rows.append(
+                stat_row(
+                    estado_labels.get(
+                        estado,
+                        estado.replace("_", " ").capitalize(),
                     ),
-                    padding=20,
-                ),
-            ],
+                    str(estado_counts[estado]),
+                )
+            )
+        if not inscricoes:
+            inscricao_rows.append(
+                ft.Text(
+                    "Sem inscrições registadas.",
+                    size=13,
+                    color=MUTED,
+                )
+            )
+
+        is_narrow = (page.width or page.window.width or 1440) < 900
+        upcoming_panel = panel(
+            ft.Column(
+                [
+                    panel_header(
+                        "Próximas provas",
+                        "Ver todas",
+                        "provas",
+                    ),
+                    *upcoming_rows,
+                ],
+                spacing=12,
+                tight=True,
+            ),
+            padding=20,
+            expand=not is_narrow,
+        )
+        estado_panel = panel(
+            ft.Column(
+                [
+                    panel_header(
+                        "Inscrições por estado",
+                        "Gerir",
+                        "registrations",
+                    ),
+                    *inscricao_rows,
+                ],
+                spacing=12,
+                tight=True,
+            ),
+            padding=20,
+            width=None if is_narrow else 330,
+        )
+        panels: ft.Control
+        if is_narrow:
+            panels = ft.Column(
+                [upcoming_panel, estado_panel],
+                spacing=16,
+                tight=True,
+            )
+        else:
+            panels = ft.Row(
+                [upcoming_panel, estado_panel],
+                spacing=16,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+            )
+
+        return ft.Column(
+            [metrics, panels],
             spacing=16,
             tight=True,
         )
 
     def show_section(key: str) -> None:
-        nonlocal profile_menu_open
-        profile_menu_open = False
-        profile_menu.visible = False
-        dismiss_profile_overlay.visible = False
+        nonlocal current_section
+        current_section = key
         selected_section = next(section for section in sections if section[0] == key)
         _, label = selected_section
         palette = DARK_PALETTE if dark_theme_active else LIGHT_PALETTE
@@ -2144,13 +2440,6 @@ def create_app(page: ft.Page) -> None:
                 panel,
                 read_only=demo_mode,
                 hide_ids=hide_table_ids,
-            )
-        elif key == "qr-reader":
-            content = build_qr_reader_view(
-                page,
-                data_tools_file_picker,
-                palette,
-                panel,
             )
         elif key == "csv-tools":
             content = build_csv_tools_view(
@@ -2288,14 +2577,10 @@ def create_app(page: ft.Page) -> None:
         page.update()
 
     def enter_demo_mode() -> None:
-        nonlocal demo_mode, login_page_active, profile_menu_open
+        nonlocal demo_mode, login_page_active
         nonlocal prova_selection_mode, current_user_id, current_user_email
         nonlocal current_user_photo
         demo_mode = True
-        profile_menu_open = False
-        profile_menu.visible = False
-        dismiss_profile_overlay.visible = False
-        profile_menu_profile_action.visible = False
         current_user_id = None
         current_user_email = None
         current_user_photo = None
@@ -2315,14 +2600,11 @@ def create_app(page: ft.Page) -> None:
         show_section("overview")
 
     def show_login_page(_: ft.Event[ft.Container] | None = None) -> None:
-        nonlocal demo_mode, login_page_active, profile_menu_open
+        nonlocal demo_mode, login_page_active
         nonlocal current_user_id, current_user_email
         nonlocal current_user_photo
         demo_mode = False
-        profile_menu_open = False
-        profile_menu.visible = False
-        dismiss_profile_overlay.visible = False
-        profile_menu_profile_action.visible = True
+        reset_logout_confirmation()
         current_user_id = None
         current_user_email = None
         current_user_photo = None
@@ -2585,35 +2867,39 @@ def create_app(page: ft.Page) -> None:
         apply_theme_colors(dark_theme_active, update_page=False)
         page.update()
 
-    def toggle_profile_menu(_: object) -> None:
-        nonlocal profile_menu_open
-        if login_page_active or not sidebar.visible:
-            return
-        profile_menu_open = not profile_menu_open
-        profile_menu.visible = profile_menu_open
-        dismiss_profile_overlay.visible = profile_menu_open
-        if profile_menu_open:
-            profile_menu.left = max(60, sidebar.width - profile_menu.width)
-        page.update()
-
     def apply_responsive_layout(width: float) -> None:
-        nonlocal profile_menu_open
         is_narrow = width < 900
-        if is_narrow:
-            profile_menu_open = False
-            profile_menu.visible = False
-            dismiss_profile_overlay.visible = False
         sidebar.visible = not is_narrow and not login_page_active
         sidebar.width = 260 if navigation_open else 84
-        profile_menu.left = max(60, sidebar.width - profile_menu.width)
-        sidebar_contents.visible = navigation_open
-        sidebar_contents.expand = navigation_open
-        collapsed_sidebar_spacer.visible = not navigation_open
+        sidebar_contents.visible = True
+        sidebar_contents.expand = True
+        collapsed_sidebar_spacer.visible = False
+        for items in navigation_items.values():
+            for item in items:
+                content = item.content
+                if not isinstance(content, ft.Row) or len(content.controls) < 2:
+                    continue
+                text_control = content.controls[1]
+                if not isinstance(text_control, ft.Text):
+                    continue
+                text_control.visible = navigation_open
+                content.spacing = 12 if navigation_open else 0
+                item.tooltip = None if navigation_open else text_control.value
+                item.padding = ft.Padding.symmetric(
+                    horizontal=14 if navigation_open else 10,
+                    vertical=12,
+                )
+                item.alignment = (
+                    ft.Alignment.CENTER_LEFT
+                    if navigation_open
+                    else ft.Alignment.CENTER
+                )
         demo_notice_container.visible = (
             demo_mode and navigation_open and not is_narrow and not login_page_active
         )
         demo_notice.visible = demo_notice_container.visible
         profile_name.visible = navigation_open
+        exit_icon_container.visible = navigation_open
         profile_button.width = 220 if navigation_open else 44
         content_menu_button.visible = is_narrow and not login_page_active
         mobile_navigation.visible = (
@@ -2642,11 +2928,8 @@ def create_app(page: ft.Page) -> None:
         page.update()
 
     def toggle_navigation(_: ft.Event[ft.Container]) -> None:
-        nonlocal navigation_open, profile_menu_open
+        nonlocal navigation_open
         navigation_open = not navigation_open
-        profile_menu_open = False
-        profile_menu.visible = False
-        dismiss_profile_overlay.visible = False
         sidebar_menu_button.tooltip = (
             "Fechar menu" if navigation_open else "Abrir menu"
         )
@@ -2655,11 +2938,63 @@ def create_app(page: ft.Page) -> None:
         )
         apply_responsive_layout(page.width or page.window.width or 1440)
 
+    def handle_exit_hover(event: ft.Event[ft.Container]) -> None:
+        hovering = bool(event.data)
+        palette = DARK_PALETTE if dark_theme_active else LIGHT_PALETTE
+        exit_icon_container.bgcolor = palette["hover"] if hovering else None
+        if logout_confirm_pending:
+            exit_icon.icon_color = palette["primary"]
+        else:
+            exit_icon.icon_color = palette["text"] if hovering else palette["muted"]
+        exit_icon_container.update()
+
+    def handle_profile_avatar_hover(event: ft.Event[ft.Container]) -> None:
+        hovering = bool(event.data)
+        palette = DARK_PALETTE if dark_theme_active else LIGHT_PALETTE
+        profile_avatar_button.border = ft.Border.all(
+            1,
+            palette["primary"] if hovering else ft.Colors.TRANSPARENT,
+        )
+        profile_avatar_button.scale = 1.05 if hovering else 1
+        profile_avatar_button.update()
+
+    def reset_logout_confirmation() -> None:
+        nonlocal logout_confirm_pending, logout_confirm_generation
+        logout_confirm_pending = False
+        logout_confirm_generation += 1
+        palette = DARK_PALETTE if dark_theme_active else LIGHT_PALETTE
+        exit_icon.icon = ft.Icons.LOGOUT
+        exit_icon.icon_color = palette["muted"]
+        exit_icon.tooltip = "Terminar sessão"
+        exit_icon.update()
+
+    async def expire_logout_confirmation(generation: int) -> None:
+        await asyncio.sleep(3)
+        if logout_confirm_pending and generation == logout_confirm_generation:
+            reset_logout_confirmation()
+            page.update()
+
+    def handle_exit_click(_: ft.Event[ft.IconButton]) -> None:
+        nonlocal logout_confirm_pending, logout_confirm_generation
+        if logout_confirm_pending:
+            show_login_page()
+            return
+        logout_confirm_pending = True
+        logout_confirm_generation += 1
+        generation = logout_confirm_generation
+        palette = DARK_PALETTE if dark_theme_active else LIGHT_PALETTE
+        exit_icon.icon = ft.Icons.CHECK
+        exit_icon.icon_color = palette["primary"]
+        exit_icon.tooltip = "Confirmar término de sessão"
+        exit_icon.update()
+        page.run_task(expire_logout_confirmation, generation)
+
     sidebar_menu_button.on_click = toggle_navigation
     content_menu_button.on_click = toggle_navigation
-    profile_button.on_click = toggle_profile_menu
-    dismiss_profile_overlay.on_click = dismiss_profile_menu
-    logout_button.on_click = show_login_page
+    profile_avatar_button.on_hover = handle_profile_avatar_hover
+    profile_avatar_button.on_click = open_profile_dialog
+    exit_icon_container.on_hover = handle_exit_hover
+    exit_icon.on_click = handle_exit_click
 
     def handle_resize(event: ft.PageResizeEvent) -> None:
         apply_responsive_layout(event.width)
@@ -2676,8 +3011,6 @@ def create_app(page: ft.Page) -> None:
                     spacing=0,
                     expand=True,
                 ),
-                dismiss_profile_overlay,
-                profile_menu,
             ],
             expand=True,
             clip_behavior=ft.ClipBehavior.NONE,

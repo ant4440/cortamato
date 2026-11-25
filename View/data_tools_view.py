@@ -19,6 +19,7 @@ from Controllers.csv_tools_controller import (
 from Controllers.qr_reader_controller import (
     QRReaderError,
     decode_qr_image,
+    scan_qr_with_camera,
 )
 from View.feedback import show_temporary_feedback
 
@@ -391,18 +392,6 @@ def build_csv_tools_view(
     async def import_students_file(_event: object) -> None:
         await import_selected_file("students", import_students_csv)
 
-    async def choose_classes_file(_event: object) -> None:
-        await choose_import_file("classes", "Selecionar CSV de turmas")
-
-    async def import_classes_file(_event: object) -> None:
-        await import_selected_file("classes", import_classes_csv)
-
-    async def choose_students_file(_event: object) -> None:
-        await choose_import_file("students", "Selecionar CSV de alunos")
-
-    async def import_students_file(_event: object) -> None:
-        await import_selected_file("students", import_students_csv)
-
     def export_filename() -> str:
         return "alunos.csv" if export_kind.value == "students" else "turmas.csv"
 
@@ -491,15 +480,7 @@ def build_csv_tools_view(
                 ),
                 ft.Row(
                     [
-                        class_file_path,
-                        ft.OutlinedButton(
-                            content="Procurar...",
-                            disabled=read_only,
-                            on_click=lambda _event: choose_import_file(
-                                "classes",
-                                "Selecionar CSV de turmas",
-                            ),
-                        ),
+                        class_file_slot,
                         ft.FilledButton(
                             content="Importar turmas",
                             disabled=read_only,
@@ -518,15 +499,7 @@ def build_csv_tools_view(
                 ),
                 ft.Row(
                     [
-                        student_file_path,
-                        ft.OutlinedButton(
-                            content="Procurar...",
-                            disabled=read_only,
-                            on_click=lambda _event: choose_import_file(
-                                "students",
-                                "Selecionar CSV de alunos",
-                            ),
-                        ),
+                        student_file_slot,
                         ft.FilledButton(
                             content="Importar alunos",
                             disabled=read_only,
